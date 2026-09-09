@@ -1,0 +1,18 @@
+{
+  "_comment": "Stock MVP domain request. This is the seed row for sys_ai_pipeline (migrations/001) — once the registry is live the CLI reads it from the DB instead of this file.",
+  "domain": "stock",
+  "schema_name": "datapai",
+  "source_name": "src_stock",
+  "tag": "stock_ai",
+  "tables": ["prices", "ticker_universe", "exchange_ref", "fx_rates_daily", "stock_market_closed_dates"],
+  "target_contracts": ["screener_metrics"],
+  "required_models": [
+    "dim_ticker",
+    "dim_exchange",
+    "dim_date",
+    "fct_daily_price",
+    "int_price_with_indicators",
+    "fct_screener_metrics"
+  ],
+  "goal": "Build the stock-price medallion mart for stock.datap.ai screeners. Raw daily OHLCV (prices, one row per ticker+trade_date+exchange, LIST-partitioned by exchange) joins to the ticker master (ticker_universe), the venue/currency reference (exchange_ref), daily FX rates vs USD (fx_rates_daily, base_currency=USD) and market holidays (stock_market_closed_dates, market_code = exchange). dim_date must be a trading calendar: one row per calendar day covering the prices date range with is_trading_day per exchange derivable via the closed-dates table. fct_daily_price is the daily price fact at (ticker, exchange, trade_date) grain with local and USD-converted close using the exchange currency and the FX rate of that day (fall back to the latest prior rate). int_price_with_indicators computes per (ticker, exchange) ordered by trade_date the technical indicators used by the existing Python job: simple moving averages over 5/10/20/30/50/200 trailing rows, RSI-14 as simple-average gain/loss over the last 14 daily changes, 20-day annualised volatility of daily returns (stdev * sqrt(252) * 100), 20-day average volume, 52-week (252-row) high/low, MACD(12,26,9) from exponential moving averages, Bollinger Bands(20,2), KDJ(9,3,3), pivot points from the prior day's high/low/close. fct_screener_metrics is the latest-row-per-(ticker, exchange) snapshot matching the column contract of the existing datapai.screener_metrics table (percentage changes over 1/5/21/63/126/252 rows, sma_* and price_vs_sma*_pct, pct_from_52w_high/low, volume_ratio = latest_volume / avg_volume_20d, etc.) so it can be diffed row-for-row against the Python-computed table. Semantics that must match the Python job exactly: golden_cross and death_cross are STATES not events (golden_cross = sma_50 > sma_200, death_cross = sma_50 < sma_200, both false when either is null); macd_trend is 'BULLISH' when macd_line > macd_signal else 'BEARISH'; kdj_signal is 'OVERBOUGHT' when kdj_j > 80, 'OVERSOLD' when kdj_j < 20 else 'NEUTRAL'; obv_trend is 'UP'/'DOWN'/'FLAT' from the sign of the 10-row change in cumulative on-balance volume (OBV = running sum of volume signed by the close-to-close change) and must be computed in int_price_with_indicators, not left null. Never filter price rows out of any model: holidays and is_trading_day are attributes for the date dimension only, every raw price row must survive to fct_daily_price so counts reconcile. Facts that reference a dimension must join it and carry its key as a declared foreign key."
+}

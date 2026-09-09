@@ -1,0 +1,85 @@
+{
+  "_comment": "Few-shot exemplar distilled from dbt-demo/models/chinook/{staging,intermediate,obt} and datapai-platform-be/dbt-traceability. Different domain from the target on purpose so the planner learns the SHAPE, not the answer.",
+  "domain": "chinook",
+  "source_name": "src_chinook",
+  "target": "snowflake_iceberg",
+  "tag": "chinook_ai",
+  "models": [
+    {
+      "name": "stg_customer",
+      "layer": "staging",
+      "description": "One row per customer, typed and renamed from raw Customer.",
+      "sources": ["customer"],
+      "grain": ["customer_id"],
+      "logic": "select and cast all columns; rename CamelCase to snake_case; no joins.",
+      "tests": [{"type": "not_null", "column": "customer_id"}, {"type": "unique", "column": "customer_id"}]
+    },
+    {
+      "name": "stg_invoice",
+      "layer": "staging",
+      "description": "One row per invoice header.",
+      "sources": ["invoice"],
+      "grain": ["invoice_id"],
+      "logic": "typed passthrough; cast invoice_date to date.",
+      "tests": [{"type": "not_null", "column": "invoice_id"}, {"type": "unique", "column": "invoice_id"}]
+    },
+    {
+      "name": "stg_invoice_line",
+      "layer": "staging",
+      "description": "One row per invoice line item.",
+      "sources": ["invoice_line"],
+      "grain": ["invoice_line_id"],
+      "logic": "typed passthrough.",
+      "tests": [{"type": "not_null", "column": "invoice_line_id"}, {"type": "unique", "column": "invoice_line_id"}]
+    },
+    {
+      "name": "int_invoice_line_priced",
+      "layer": "intermediate",
+      "description": "Invoice lines enriched with header date and customer, line_amount computed.",
+      "refs": ["stg_invoice_line", "stg_invoice"],
+      "grain": ["invoice_line_id"],
+      "measures": ["line_amount"],
+      "logic": "join stg_invoice_line to stg_invoice on invoice_id; line_amount = unit_price * quantity.",
+      "tests": [{"type": "not_null", "column": "invoice_line_id"}, {"type": "unique", "column": "invoice_line_id"}]
+    },
+    {
+      "name": "dim_customer",
+      "layer": "dimension",
+      "description": "Customer dimension, SCD type 1.",
+      "refs": ["stg_customer"],
+      "natural_key": ["customer_id"],
+      "surrogate_key": "customer_key",
+      "scd_type": 1,
+      "logic": "surrogate key = dbt_utils.generate_surrogate_key(['customer_id']); keep descriptive attributes only.",
+      "tests": [{"type": "not_null", "column": "customer_key"}, {"type": "unique", "column": "customer_key"}]
+    },
+    {
+      "name": "dim_date",
+      "layer": "dimension",
+      "description": "Calendar dimension spanning the invoice date range.",
+      "refs": ["stg_invoice"],
+      "natural_key": ["date_key"],
+      "logic": "generate one row per calendar day between min and max invoice_date using a recursive CTE or generator; add day/week/month/quarter/year attributes.",
+      "tests": [{"type": "not_null", "column": "date_key"}, {"type": "unique", "column": "date_key"}]
+    },
+    {
+      "name": "fct_invoice_line",
+      "layer": "fact",
+      "description": "Transaction-grain fact: one row per invoice line with FKs to customer and date.",
+      "refs": ["int_invoice_line_priced", "dim_customer", "dim_date"],
+      "grain": ["invoice_line_id"],
+      "foreign_keys": [
+        {"column": "customer_key", "ref_model": "dim_customer", "ref_column": "customer_key"},
+        {"column": "date_key", "ref_model": "dim_date", "ref_column": "date_key"}
+      ],
+      "measures": ["quantity", "unit_price", "line_amount"],
+      "logic": "left join int_invoice_line_priced to dim_customer on customer_id and dim_date on invoice_date; expose keys + measures.",
+      "tests": [
+        {"type": "not_null", "column": "invoice_line_id"},
+        {"type": "unique", "column": "invoice_line_id"},
+        {"type": "relationships", "column": "customer_key", "to": "dim_customer", "field": "customer_key"}
+      ]
+    }
+  ],
+  "notes": "Staging reads sources only; intermediate/dims/facts read refs only; facts reference dims by surrogate key."
+}

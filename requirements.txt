@@ -1,0 +1,33 @@
+# datapai-ai-etl — AI ETL + Iceberg medallion product
+# Runtime: EC2 platform.datap.ai, venv /home/ec2-user/venv_ai_etl (python3.12).
+# Install:  /home/ec2-user/venv_ai_etl/bin/pip install -r requirements.txt
+#
+# NOTE: dbt-core 1.10+ depends on dbt-core-experimental-parser which only ships
+# manylinux_2_28 wheels; the EC2 host glibc is older, so dbt is pinned to 1.9.x.
+# NOTE: ag2 / pyautogen is intentionally absent — ag2_pipeline/ is an archived PoC.
+
+# Agent framework (decision #3: LangGraph + LangChain, not AG2)
+langgraph>=1.0
+langchain-core>=1.0
+langgraph-checkpoint-sqlite
+langgraph-checkpoint-postgres
+
+# dbt + Snowflake-over-Iceberg engine (decision #4/#5)
+dbt-core==1.9.*
+dbt-snowflake==1.9.*
+snowflake-connector-python
+
+# Source introspection (Postgres raw) + registry (framework DB)
+psycopg2-binary
+
+# Plan / catalog models
+pydantic>=2
+pyyaml
+
+# Column-level lineage over compiled dbt SQL (see docs/architecture/column-level-lineage.md)
+sqlglot>=25
+
+# LLM vendors reached through datapai-platform-be agents/llm_client.py:RouterChatClient
+openai
+google-generativeai
+boto3

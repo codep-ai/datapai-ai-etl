@@ -1,52 +1,53 @@
-# datapai-ai-etl
+# datapai-ai-etl — AI ETL + Iceberg "one-click medallion"
 
-**AI-driven ETL research & PoC code.** Not shipped, not supported, not part of the `datapai-platform-be` product surface.
+**Status (2026-09-09):** active product code. This repo is the code home for DATAP.AI's
+AI-generated dbt medallion pipelines (raw → staging → intermediate → dim/fact) on an
+Apache Iceberg floor, with governance in the loop.
 
-## Status
+Pitch line it implements: *"neutral Iceberg data floor + AI-powered ETL/dbt + APAC
+governance for regulated fintechs; cuts license AND engineering cost."*
 
-Extracted from `datapai-platform-be` on 2026-04-18 as part of the platform-isolation refactor (see `datapai-platform-be/docs/phase-journals/2026-04-18-platform-isolation-plan.md`). The code here was PoC / research work not in active production use when removed.
+## Read first
+1. `docs/phase-journals/2026-09-09-handover-ai-etl-iceberg-mvp.md` — session brief, 10 locked decisions, week-by-week definition of done, EC2 runtime gotchas.
+2. `/Users/linlin/git/datapai-platform-be/docs/phase-journals/2026-09-09-e2e-ai-medallion-pipeline-inventory-and-mvp-plan.md` — 6-repo inventory, gap table, graph shape, reuse map.
+3. `docs/phase-journals/` — one journal per delivery week (newest = current state).
 
-Kept in a separate repo rather than deleted so the research can be revisited.
+## Layout
+| Path | What |
+|---|---|
+| `pipeline_planner/` | **The product.** LangGraph graph: `introspect → plan → [HITL] → generate → build → parse_results → repair* → register → emit_dag → diff` |
+| `pipeline_planner/schema_introspector.py` | Postgres raw schema → `SourceCatalog` (keys, inferred FKs, partition-aware counts, PII sensitivity) |
+| `pipeline_planner/medallion_planner.py` | LLM (RouterChatClient) → `MedallionPlan` JSON, validated + topologically ordered, self-repairing prompt loop |
+| `pipeline_planner/models.py` | `SourceCatalog`, `MedallionPlan` (pydantic) |
+| `pipeline_planner/graph.py` | LangGraph `StateGraph` + checkpointer (SQLite local / Postgres EC2) |
+| `pipeline_planner/cli.py` | `python -m pipeline_planner.cli introspect|plan|validate|run` |
+| `pipeline_planner/domains/*.json` | Per-domain request (tables, goal, required models). Interim until `sys_ai_pipeline` is live |
+| `pipeline_planner/few_shot/` | Planner exemplars (chinook shape) |
+| `pipeline_planner/_vendored/` | Dependency-free ports of `compliance_tools` PII heuristics and `profile_table/check_primary_key` |
+| `platform_init.py` | Adds `DATAPAI_PLATFORM_DIR` (datapai-platform-be) to `sys.path` for `agents.llm_client`, `agents.dbt_agent`, governance, ledger |
+| `migrations/` | `001_sys_ai_pipeline.sql` — pipeline registry (framework DB). File only until Week 3 |
+| `docs/` | Phase journals, architecture notes, operator runbook |
+| `ag2_pipeline/`, `workflow_engine/` | **Legacy PoC (AG2). Reference only, pending removal.** Never ran in prod. Only `compliance_tools.py` and `tools.py` heuristics were vendored |
+| `sync.sh` | Local → EC2 backup rsync (additive, `--dry-run` supported). Never add `--delete` |
 
-## Contents
+## Runtime
+- **EC2 `platform.datap.ai` is the only runtime.** Local Mac is source only.
+  `ssh -i ~/.ssh/Linux-CodeCambat.pem ec2-user@platform.datap.ai`
+- venv: `/home/ec2-user/venv_ai_etl` (python3.12; `pip install -r requirements.txt`).
+  dbt is pinned to 1.9.x because the host glibc (2.26) cannot load dbt-core 1.10+ parser wheels.
+- Env (EC2): `export DATAPAI_PLATFORM_DIR=/home/ec2-user/git/datapai-platform-be` (NOT `vanna-streamlit`),
+  `source ~/.env.dev` for `DATAPAI_PG_*` (stock DB :5434) and LLM keys; Snowflake vars are in `~/.bash_profile`.
+- dbt landing zone: `/home/ec2-user/git/dbt-demo/models/stock/{staging,intermediate,marts}`, tag `stock_ai`, profile `datapai_snowflake_svc/prod`.
 
-### `workflow_engine/` — lightweight AI-driven pipeline runner
-
-Source: former `datapai-platform-be/etl/` directory.
-
-- `contracts.py` — pipeline contract definitions
-- `plans.py` — plan representation
-- `run_context.py` — runtime context
-- `workflow_runner.py` — pipeline execution
-- `workflow_service.py` — service wrapper
-- `copy_data.py`, `insert_redshift.py`, `insert_snowflake.py` — data-movement steps
-
-### `ag2_pipeline/` — AG2 multi-agent ETL with compliance hooks
-
-Source: former `datapai-platform-be/agents/etl/` directory.
-
-- `pipeline.py` — AG2 multi-agent pipeline orchestrator
-- `audit.py` — pipeline audit logging
-- `compliance_tools.py` — compliance check functions
-- `cost_control.py` — cost guard hooks
-- `llm_config.py` — LLM configuration
-- `prompts.py` — prompt templates
-- `tools.py` — tool registry
-- `airbyte_tools.py` — Airbyte integration (note: Airbyte stopped on prod EC2 as of 2026-04-06)
-
-## Why moved here
-
-Two reasons:
-1. **Never used in production** — dead code in the active platform repo adds security-review surface without value.
-2. **Positioning** — the platform-be product is sold as an add-in into BMC/SAP deployments; workflow engines and Airbyte integrations visually compete with Control-M / SAP Data Services, which is the wrong signal for that buyer.
-
-If AI-driven ETL becomes a product direction, revive this code here and ship it as its own product — not as a platform feature.
-
-## Recall path
-
+## Week-1 quickstart (on EC2)
+```bash
+cd /home/ec2-user/git/datapai-ai-etl
+source ~/.env.dev; export DATAPAI_PLATFORM_DIR=/home/ec2-user/git/datapai-platform-be
+/home/ec2-user/venv_ai_etl/bin/python -m pipeline_planner.cli introspect --out out/stock_catalog.json
+/home/ec2-user/venv_ai_etl/bin/python -m pipeline_planner.cli plan --catalog out/stock_catalog.json --out out/stock_plan.json
 ```
-cp ai_etl/<path> ../datapai-platform-be/<destination>
-# or
-git clone <this repo>
-cherry-pick specific files
-```
+
+## Working rules
+- Reverse-sync EC2 → local before every commit; deploy additive-only (`rsync` without `--delete`).
+- Phase journal + local commit before moving to the next week. `git push` and Airflow activation need explicit confirmation.
+- DB-driven defaults (no hardcoded plan lists); pilot stance = availability over strictness.
