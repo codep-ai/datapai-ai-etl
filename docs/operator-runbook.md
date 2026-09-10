@@ -79,3 +79,13 @@ $PY -m pipeline_planner.cli pii-report --lineage out/dbtdemo_lineage.json --proj
 #     masking_policies.sql (DRY RUN Snowflake masking DDL — review, never auto-applied)
 ```
 DB view: `datapai.v_sys_ai_pii_columns` (migration 004) = sensitive columns per pipeline latest run with root columns.
+
+## PII policy (DB-driven, zero code) — `datapai.sys_common_config` config_type `pii`
+```sql
+SELECT config_key, config_value FROM datapai.sys_common_config WHERE config_type='pii' ORDER BY 1;
+UPDATE datapai.sys_common_config SET config_value='redact', updated_at=now() WHERE config_type='pii' AND config_key='pii_PII_MEDIUM_strategy';
+UPDATE datapai.sys_common_config SET config_value='apply',  updated_at=now() WHERE config_type='pii' AND config_key='pii_masking_apply_mode';  -- enables pii-report --apply-masking
+```
+Then re-run `lineage-project --annotate` (+ `dbt docs generate`) so the guardrail meta reflects the new policy.
+**Guardrail opt-in (explicit, human decision):** `lineage-project --project-dir <p> --select <models> --set-ai-access restricted` writes
+`meta.datapai.ai_access_level`; without it the platform guardrail denies every column of the model regardless of PII meta.

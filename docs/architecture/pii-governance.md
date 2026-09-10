@@ -1,6 +1,6 @@
 # PII governance on top of column-level lineage — design
 
-**Date:** 2026-09-10 · **Status:** detection + propagation shipped; inventory/report + masking DDL shipped as dry-run; enforcement wiring next
+**Date:** 2026-09-10 · **Status:** detection, propagation, inventory, DB-driven policy (`sys_common_config` type `pii`, migration 005), guardrail integration (meta.datapai) shipped; masking DDL dry-run + gated apply; HITL approval flow next
 **Why it matters:** every licensed financial business in Australia reports to ASIC / APRA / AUSTRAC / ATO and is bound by the Privacy Act APPs.
 "Where is the personal data, where did it flow, who can see it, prove it" is the compliance officer's question. Catalog vendors answer it
 with a platform; we answer it from the dbt artefacts the customer already has, on any engine, generated on every build.
@@ -16,8 +16,8 @@ heuristics        every upstream hop             tenant in sys_common_config    
 |---|---|---|
 | Detect | `_vendored/pii_classifier.py`: column-name heuristics (credentials, gov IDs, cards, bank, health, contact, identity, demographics, location) + value-regex on samples; numeric types skipped | shipped |
 | Propagate | `column_lineage.py`: sensitivity = max over upstream columns, each hop; roots = declared sources, seeds, or untraced nodes classified by name | shipped (dbt-demo: 49 sensitive columns from 15 roots, e.g. `customer.email` → `stg_customer` → `dim_customer` → `obt_invoice.customer_email`) |
-| Decide | `pii.py:DEFAULT_POLICY` (level → redact/hash/partial + roles). Must move to `sys_common_config` per tenant | shipped as code default |
-| Enforce | `pii.masking_ddl()` Snowflake masking policies + `ALTER TABLE … SET MASKING POLICY` (dry-run output); `pii.dbt_patch()` tags `pii` + `meta.pii`; `pii.restricted_list()` for `dbt_guardrail_agent` | dry-run; not applied |
+| Decide | `pii.load_policy()` reads `sys_common_config` config_type `pii` (strategy/roles per level, `pii_masking_apply_mode`, `pii_hitl_required_levels`, guardrail answer modes); code defaults are the fallback. One policy per deployment (single-customer VPC, no tenants) | shipped (migration 005 applied) |
+| Enforce | `pii.masking_ddl()` Snowflake masking DDL; `pii.apply_masking()` executes ONLY when `pii_masking_apply_mode='apply'`, skipping HITL levels; **guardrail**: `annotate_yaml` writes `meta.datapai.{pii,security_class,masking_rule,answer_mode,allowed_in_output}` per column and `{contains_pii,sensitivity_level,default_answer_mode}` per model — the vocabulary `guardrail/policy_compiler.py` reads. Verified: `stg_customer.customer_email` → pii direct / hash / masked in the platform catalog | shipped |
 | Prove | `pii.report()` + `to_markdown()`: inventory by level, by model, roots with blast radius; `sys_ai_column_lineage.to_sensitivity`; lineage page colour bar; `v_sys_ai_pii_columns` (migration 004) | shipped |
 
 ## 2. What is new versus the usual "PII scanner"
@@ -35,10 +35,18 @@ heuristics        every upstream hop             tenant in sys_common_config    
 | AUSTRAC record-keeping (7 yrs) | classification + retention rule slot in the brief; Iceberg snapshots give point-in-time evidence |
 | GDPR (EU clients of AU brokers) Art. 30 records of processing | same inventory export, per pipeline |
 
+## 3a. Guardrail integration — how it behaves
+The platform guardrail is **deny-by-default**: a model with no `meta.datapai.ai_access_level` (or `deny`) has every column
+short-circuited to DENY before any pii meta is read. Our lineage/PII steps therefore never approve a model for AI; they only
+attach the classification. A human opts models in explicitly (`lineage-project --set-ai-access restricted|approved`,
+or by editing the YAML). Once eligible, PII columns answer `masked` with the configured `masking_rule`, PII_HIGH `deny`,
+FINANCIAL `aggregate_only`. Models without a schema YAML (e.g. chinook `obt_invoice`) are invisible to the guardrail —
+`dbt docs`/codegen-generated YAML is a prerequisite.
+
 ## 4. Gaps and next steps (ordered)
-1. **Policy in DB**: `sys_common_config` rows `pii.<level>.strategy` / `.roles`, per tenant; `pii.py` reads them (DB-driven rule).
-2. **Apply masking** as a pipeline node after `build_repair`, HITL-gated for PII_HIGH; record applied policies in `sys_ai_column_lineage` (or a `sys_ai_masking_applied` table).
-3. **Guardrail integration**: feed `restricted_list()` to `agents/dbt_guardrail_agent` so text2sql / agent SQL over the generated marts is blocked or masked on those columns.
+1. ~~Policy in DB~~ done (migration 005). 2. ~~Guardrail integration~~ done (meta.datapai).
+2. **Apply masking** as a pipeline node after `build_repair`, HITL approval for `pii_hitl_required_levels` via the platform HITL service; record applied policies (`sys_ai_masking_applied`).
+3. **Generate schema YAML for models that lack it** (dbt-codegen `generate_model_yaml`) so every model is governable.
 4. **Planner rule hardening**: non-PUBLIC source column ⇒ staging must hash/redact unless the brief whitelists it; validator enforces (today it is a prompt instruction).
 5. **Detection depth**: optional Presidio NER on samples; customer-specific patterns (TFN, Medicare, ABN, passport formats) as `sys_common_config` regex rows — AU identifiers are not in the default set yet.
 6. **Value-level checks**: dbt_expectations tests generated for sensitive columns (`expect_column_values_to_match_regex` for hashed form) so a regression that un-hashes a column fails the build.

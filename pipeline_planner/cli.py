@@ -216,6 +216,12 @@ def cmd_lineage_project(args) -> int:
         print(f"  {m:<36} cols={sm['columns']:>3} traced={sm['traced']:>3}")
     if args.to_target:
         p = Path(args.project_dir) / "target" / "lineage.json"; p.write_text(json.dumps(lin, default=str), encoding="utf-8"); print(f"wrote {p} (read by assets/lineage.html)")
+    if args.annotate:
+        touched = column_lineage.annotate_yaml(lin, column_lineage.yaml_paths_from_manifest(args.project_dir))
+        print(f"annotated {len(touched)} schema YAML files (meta.lineage / meta.sensitivity / meta.datapai guardrail block)")
+    if args.set_ai_access:
+        touched = column_lineage.set_ai_access_level(args.project_dir, list(lin["columns"]), args.set_ai_access)
+        print(f"EXPLICIT: set meta.datapai.ai_access_level={args.set_ai_access} on {len(touched)} YAML files (selected models only)")
     if args.to_db:
         run_id = __import__("datetime").datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
         res = column_lineage.write_lineage_pg(lin, pipeline_id=args.pipeline_id, run_id=run_id); print(f"system db: {res['rows']} edges (run_id={run_id})")
@@ -238,6 +244,9 @@ def cmd_pii_report(args) -> int:
         ddl = pii.masking_ddl(lin, rels, engine=args.engine)
         (out_dir / "masking_policies.sql").write_text("-- DRY RUN — review before applying\n" + "\n".join(ddl) + "\n", encoding="utf-8")
         print(f"masking DDL statements: {len(ddl)}")
+    pol = pii.load_policy(); print(f"policy source: {pol['source']} apply_mode={pol['apply_mode']} hitl={pol['hitl_levels']}")
+    if args.apply_masking and args.project_dir:
+        print("apply:", pii.apply_masking(ddl, pol))
     print(f"sensitive columns: {rep['total_sensitive_columns']} | models: {len(rep['models_with_pii'])} | roots: {len(rep['roots'])}")
     for r in rep["roots"][:8]:
         print(f"  root {r['node']}.{r['column']:<22} {r['sensitivity']:<11} -> {r['downstream']} downstream columns")
@@ -345,12 +354,16 @@ def main(argv=None) -> int:
     sp.add_argument("--select", help="substring / tag:<tag> / path filter on models"); sp.add_argument("--out")
     sp.add_argument("--to-target", dest="to_target", action="store_true", help="write target/lineage.json for the lineage page")
     sp.add_argument("--to-db", dest="to_db", action="store_true"); sp.add_argument("--pipeline-id", dest="pipeline_id", default="dbt_project")
+    sp.add_argument("--annotate", action="store_true", help="write meta into the project's schema YAML (via manifest patch_path)")
+    sp.add_argument("--set-ai-access", dest="set_ai_access", choices=["deny", "internal", "restricted", "approved"],
+                    help="EXPLICIT governance opt-in: set meta.datapai.ai_access_level on the selected models (guardrail is deny-by-default)")
     sp.set_defaults(fn=cmd_lineage_project)
 
     sp = sub.add_parser("pii-report", help="PII inventory, restricted list, dbt patch and masking DDL (dry-run) from a lineage JSON")
     sp.add_argument("--lineage", required=True); sp.add_argument("--out-dir", dest="out_dir", default="out/pii")
     sp.add_argument("--project-dir", dest="project_dir", help="dbt project (for relation names in masking DDL)")
     sp.add_argument("--engine", default="snowflake"); sp.add_argument("--title", default="dbt project")
+    sp.add_argument("--apply-masking", dest="apply_masking", action="store_true", help="execute masking DDL if sys_common_config pii_masking_apply_mode='apply' (HITL levels skipped)")
     sp.set_defaults(fn=cmd_pii_report)
 
     args = p.parse_args(argv)

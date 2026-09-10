@@ -27,6 +27,7 @@ from typing import Any, Dict, List, Optional
 
 from .models import MedallionPlan, SourceCatalog
 from ._vendored.pii_classifier import max_sensitivity
+from . import pii
 
 logger = logging.getLogger(__name__)
 
@@ -198,6 +199,45 @@ def compute_lineage(project_dir: str, plan: MedallionPlan, catalog: SourceCatalo
             "summary": {m: {"columns": len(c), "traced": sum(1 for v in c.values() if v["sources"])} for m, c in columns.items()}}
 
 
+def yaml_paths_from_manifest(project_dir: str) -> Dict[str, Dict[str, str]]:
+    """{model_name: {"yml_path": ...}} for every model with a schema YAML (patch_path) — lets annotate_yaml run on any project."""
+    manifest = _load_manifest(project_dir)
+    out: Dict[str, Dict[str, str]] = {}
+    for n in manifest.get("nodes", {}).values():
+        if n.get("resource_type") == "model" and n.get("patch_path"):
+            rel = n["patch_path"].split("://", 1)[-1]
+            out[n["name"]] = {"yml_path": str(Path(project_dir) / rel)}
+    return out
+
+
+def set_ai_access_level(project_dir: str, models: List[str], level: str) -> List[str]:
+    """
+    EXPLICIT opt-in: write meta.datapai.ai_access_level (deny|internal|restricted|approved) on the given models'
+    schema YAML. The platform guardrail is deny-by-default and short-circuits every column of a non-eligible
+    model to DENY before reading pii meta — so PII masking metadata only takes effect once a human sets this.
+    Never called automatically by the lineage/PII steps.
+    """
+    import yaml
+    assert level in ("deny", "internal", "restricted", "approved"), level
+    paths = yaml_paths_from_manifest(project_dir)
+    touched: List[str] = []
+    for m in models:
+        yp = paths.get(m, {}).get("yml_path")
+        if not yp or not Path(yp).exists():
+            continue
+        doc = yaml.safe_load(Path(yp).read_text(encoding="utf-8")) or {}
+        changed = False
+        for md in doc.get("models", []):
+            if md.get("name") == m:
+                md.setdefault("meta", {}).setdefault("datapai", {})["ai_access_level"] = level
+                md["meta"]["datapai"].setdefault("ai_enabled", level != "deny")
+                changed = True
+        if changed:
+            Path(yp).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120), encoding="utf-8")
+            touched.append(yp)
+    return touched
+
+
 def annotate_yaml(lineage: Dict[str, Any], generated: Dict[str, Dict[str, Any]]) -> List[str]:
     """
     Write lineage back into the generated dbt YAML as column `meta` (dbt-native: shows in dbt docs,
@@ -223,8 +263,14 @@ def annotate_yaml(lineage: Dict[str, Any], generated: Dict[str, Dict[str, Any]])
                     continue
                 c.setdefault("meta", {})["lineage"] = [f"{s['node']}.{s['column']}" for s in info["sources"]]
                 c["meta"]["sensitivity"] = info["sensitivity"]
+                gm = pii.guardrail_column_meta(info["sensitivity"])
+                if gm:
+                    c["meta"]["datapai"] = {**c["meta"].get("datapai", {}), **gm}
                 changed = True
             m.setdefault("meta", {})["column_lineage_dialect"] = lineage["dialect"]
+            mm = pii.guardrail_model_meta([v["sensitivity"] for v in cols.values()])
+            if mm:
+                m["meta"]["datapai"] = {**m["meta"].get("datapai", {}), **mm}
         if changed:
             Path(yml_path).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120), encoding="utf-8")
             touched.append(yml_path)
