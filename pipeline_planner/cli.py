@@ -200,6 +200,8 @@ def cmd_lineage(args) -> int:
     if args.to_warehouse:
         res = column_lineage.write_lineage_table(lin, pipeline_id=pipeline_id, run_id=run_id)
         print(f"warehouse projection: {res['rows']} edges -> {res['table']} (run_id={run_id})")
+    if args.patch_docs:
+        print("dbt docs index.html patched:", column_lineage.patch_dbt_docs(req["dbt_project_dir"]))
     print("traced:", lin["summary"])
     return 0
 
@@ -296,6 +298,7 @@ def main(argv=None) -> int:
     sp.add_argument("--to-db", dest="to_db", action="store_true", help="persist edges to datapai.sys_ai_column_lineage (framework Postgres, system of record)")
     sp.add_argument("--to-warehouse", dest="to_warehouse", action="store_true", help="optional read-only Iceberg projection into the warehouse for BI")
     sp.add_argument("--run-id", dest="run_id")
+    sp.add_argument("--patch-docs", dest="patch_docs", action="store_true", help="inject the Column lineage link into dbt docs target/index.html")
     sp.set_defaults(fn=cmd_lineage)
 
     args = p.parse_args(argv)

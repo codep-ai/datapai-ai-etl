@@ -1,0 +1,21 @@
+<!-- datapai-ai-etl:column-lineage-link -->
+<script>
+(function () {
+  // Floating "Column lineage" button in the dbt docs shell. Deep-links to the model currently open
+  // (#!/model/model.<project>.<name>) or to the overview. Re-injected after every `dbt docs generate`
+  // by `pipeline_planner.cli lineage --patch-docs` (idempotent, marker above).
+  function target() {
+    var m = (location.hash || '').match(/#!\/(model|source)\/([^?\/]+)/);
+    if (!m) return 'assets/lineage.html';
+    var parts = m[2].split('.'); var name = parts[parts.length - 1];
+    return 'assets/lineage.html#' + (m[1] === 'source' ? 'source:' + name : name);
+  }
+  var a = document.createElement('a');
+  a.textContent = 'Column lineage ⇢'; a.title = 'Column-level lineage for the model you are viewing';
+  a.style.cssText = 'position:fixed;left:14px;bottom:14px;z-index:9999;padding:8px 12px;border-radius:6px;background:#0969da;color:#fff;font:13px -apple-system,Segoe UI,Roboto,sans-serif;text-decoration:none;box-shadow:0 2px 8px rgba(0,0,0,.25)';
+  a.href = target(); a.addEventListener('mouseenter', function () { a.href = target(); });
+  window.addEventListener('hashchange', function () { a.href = target(); });
+  document.addEventListener('DOMContentLoaded', function () { document.body.appendChild(a); });
+  if (document.readyState !== 'loading') document.body.appendChild(a);
+})();
+</script>

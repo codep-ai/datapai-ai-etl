@@ -322,6 +322,30 @@ def write_lineage_table(lineage: Dict[str, Any], pipeline_id: str, run_id: str,
     return {"table": fq, "rows": int(n), "pipeline_id": pipeline_id, "run_id": run_id}
 
 
+DOCS_INJECT_MARKER = "<!-- datapai-ai-etl:column-lineage-link -->"
+
+
+def patch_dbt_docs(project_dir: str) -> bool:
+    """
+    Inject the floating "Column lineage" link into dbt docs' target/index.html so the dbt pages (model,
+    source, graph) link back to assets/lineage.html. dbt rewrites index.html on every `docs generate`,
+    so this runs after it; idempotent via DOCS_INJECT_MARKER. Returns True when the file was modified.
+    """
+    idx = Path(project_dir) / "target" / "index.html"
+    if not idx.exists():
+        logger.warning("patch_dbt_docs: %s not found (run dbt docs generate first)", idx)
+        return False
+    html = idx.read_text(encoding="utf-8")
+    if DOCS_INJECT_MARKER in html:
+        return False
+    snippet = (Path(__file__).parent / "static" / "dbt_docs_inject.html").read_text(encoding="utf-8")
+    pos = html.rfind("</body>")
+    html = html[:pos] + snippet + html[pos:] if pos >= 0 else html + snippet
+    idx.write_text(html, encoding="utf-8")
+    logger.info("patched %s with column-lineage link", idx)
+    return True
+
+
 def to_mermaid(lineage: Dict[str, Any], model: Optional[str] = None, max_edges: int = 400) -> str:
     """Quick visual for the demo: column-level edges (optionally only into one model)."""
     lines = ["graph LR"]

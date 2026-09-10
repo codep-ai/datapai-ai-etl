@@ -27,6 +27,11 @@ sudo chown -R ec2-user:ec2-user target          # Airflow's bind mount writes co
 /home/ec2-user/venv_ai_etl/bin/dbt docs generate --profile datapai_snowflake_svc --target prod
 ```
 `docs serve` reads `target/` on each request; no restart needed.
+**Then re-inject the Column-lineage link** (dbt rewrites `index.html` on every generate):
+```bash
+cd /home/ec2-user/git/datapai-ai-etl; /home/ec2-user/venv_ai_etl/bin/python -m pipeline_planner.cli lineage --catalog out/stock_catalog.json --plan out/stock_plan.json --state out/stock_generated.json --out out/stock_lineage.json --patch-docs
+cp /home/ec2-user/git/dbt-demo/assets/lineage.html /home/ec2-user/git/dbt-demo/target/assets/lineage.html
+```
 
 **Verify**
 ```bash
@@ -50,7 +55,10 @@ cd /home/ec2-user/git/datapai-ai-etl; set -a; source ~/.env.dev; set +a
 `--annotate` writes `meta.lineage` / `meta.sensitivity` into the generated YAML; then run the docs refresh above so `dbt.datap.ai` shows it.
 Add `--to-db` to persist edges into the SYSTEM table `datapai.sys_ai_column_lineage` in `datapai_auth_db` (framework Postgres :5433, view `v_sys_ai_column_lineage_latest`; migration 002). `--to-warehouse` is an optional read-only Iceberg projection for BI, off by default.
 
-## Viewing lineage — column graph
+## Viewing lineage — column graph (integrated with dbt docs)
+- dbt docs → lineage: floating **Column lineage ⇢** button on every dbt page (model, source, graph), deep-links to the model you are viewing; also linked from the docs overview page.
+- lineage → dbt docs: click a model title, or **View documentation ↗ / View in dbt graph ↗** in the detail panel; header has ← dbt docs / dbt graph. Light theme default, ☾ toggle.
+
 https://dbt.datap.ai/assets/lineage.html (deep link `#<model>.<column>`). Source of truth `datapai-ai-etl/pipeline_planner/static/lineage.html`;
 deploy = copy to `dbt-demo/assets/lineage.html` (dbt copies it to `target/assets/` on `docs generate`; copy to `target/assets/` too for an
 immediate refresh). Reads `../manifest.json`; needs the `--annotate` lineage step + `dbt docs generate` to have run.

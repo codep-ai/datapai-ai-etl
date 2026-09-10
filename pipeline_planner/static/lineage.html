@@ -5,16 +5,20 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Column-level lineage</title>
 <style>
-  :root { --bg:#0f1419; --panel:#161c24; --line:#2a3441; --text:#e6edf3; --muted:#8b98a5; --accent:#4cc2ff;
-          --up:#ffb454; --down:#7ee787; --pub:#3b4652; --low:#5a7d2a; --med:#b58900; --fin:#c96a1a; --high:#d1383d; }
+  :root { --bg:#ffffff; --panel:#f6f8fa; --line:#d0d7de; --text:#1f2328; --muted:#656d76; --accent:#0969da;
+          --up:#d4700a; --down:#1a7f37; --pub:#c9d1d9; --low:#7cb342; --med:#d4a017; --fin:#e07b39; --high:#cf222e;
+          --hover:#eaeef2; --selbg:#ddf4ff; --upbg:#fff1e5; --downbg:#dafbe1; --dimop:.35; }
+  [data-theme="dark"] { --bg:#0f1419; --panel:#161c24; --line:#2a3441; --text:#e6edf3; --muted:#8b98a5; --accent:#4cc2ff;
+          --up:#ffb454; --down:#7ee787; --pub:#3b4652; --low:#5a7d2a; --med:#b58900; --fin:#c96a1a; --high:#d1383d;
+          --hover:#1f2a36; --selbg:#223447; --upbg:#3a2b12; --downbg:#12321f; --dimop:.45; }
   * { box-sizing:border-box; }
   body { margin:0; background:var(--bg); color:var(--text); font:13px/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
   header { display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; flex-wrap:wrap; }
   header h1 { font-size:15px; margin:0 8px 0 0; font-weight:600; }
-  input,select,button { background:#0b0f14; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  input,select,button { background:var(--bg); color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
   input { width:280px; }
   button { cursor:pointer; } button:hover { border-color:var(--accent); }
-  .pill { padding:2px 8px; border-radius:10px; background:#0b0f14; border:1px solid var(--line); color:var(--muted); }
+  .pill { padding:2px 8px; border-radius:10px; background:var(--bg); border:1px solid var(--line); color:var(--muted); }
   .legend span { display:inline-block; width:10px; height:10px; border-radius:2px; margin:0 4px 0 10px; vertical-align:-1px; }
   #wrap { position:relative; overflow:auto; height:calc(100vh - 52px); }
   svg { display:block; min-width:100%; }
@@ -22,13 +26,13 @@
   .model text.title { font-weight:600; fill:var(--text); }
   .model text.sub { fill:var(--muted); font-size:11px; }
   .col rect { fill:transparent; }
-  .col:hover rect { fill:#1f2a36; }
+  .col:hover rect { fill:var(--hover); }
   .col text { fill:var(--text); font-size:12px; }
-  .col.dim text { fill:var(--muted); opacity:.45; }
-  .col.sel rect { fill:#223447; stroke:var(--accent); }
-  .col.up rect { fill:#3a2b12; } .col.down rect { fill:#12321f; }
+  .col.dim text { fill:var(--muted); opacity:var(--dimop); }
+  .col.sel rect { fill:var(--selbg); stroke:var(--accent); }
+  .col.up rect { fill:var(--upbg); } .col.down rect { fill:var(--downbg); }
   .sens { width:6px; }
-  path.edge { fill:none; stroke:#3c4a5a; stroke-width:1.2; opacity:.55; }
+  path.edge { fill:none; stroke:var(--muted); stroke-width:1.2; opacity:.5; }
   path.edge.dim { opacity:.06; }
   path.edge.up { stroke:var(--up); stroke-width:2; opacity:.95; }
   path.edge.down { stroke:var(--down); stroke-width:2; opacity:.95; }
@@ -46,6 +50,8 @@
   <select id="tag"></select>
   <label><input type="checkbox" id="onlymeta" checked style="width:auto"> only models with lineage meta</label>
   <button id="reset">reset</button>
+  <button id="theme" title="toggle light/dark">☾ dark</button>
+  <a href="../index.html" style="color:var(--accent)">← dbt docs</a> <a href="../index.html?g_v=1" style="color:var(--accent)">dbt graph</a>
   <span class="pill" id="stats">loading manifest.json…</span>
   <span class="legend"><span style="background:var(--pub)"></span>PUBLIC<span style="background:var(--low)"></span>PII_LOW<span style="background:var(--med)"></span>PII_MEDIUM<span style="background:var(--fin)"></span>FINANCIAL<span style="background:var(--high)"></span>PII_HIGH</span>
   <span class="legend"><span style="background:var(--up)"></span>upstream<span style="background:var(--down)"></span>downstream · dashed = derived</span>
@@ -66,7 +72,7 @@
   const srcByName = {};
   for (const [uid, s] of Object.entries(manifest.sources || {})) {
     const key = 'source:' + s.name; srcByName[s.name] = key;
-    nodes[key] = {key, name: s.name, kind: 'source', tags: s.tags || [], cols: Object.keys(s.columns || {}).map(c => c.toLowerCase()), colMeta: {}, hasMeta: false, depth: 0, deps: []};
+    nodes[key] = {key, uid, name: s.name, kind: 'source', tags: s.tags || [], cols: Object.keys(s.columns || {}).map(c => c.toLowerCase()), colMeta: {}, hasMeta: false, depth: 0, deps: []};
   }
   const modelByName = {};
   for (const [uid, n] of Object.entries(manifest.nodes || {})) {
@@ -76,7 +82,7 @@
     const colMeta = {}; let hasMeta = false;
     for (const [c, info] of cols) { const m = (info.meta || {}); if (m.lineage) hasMeta = true; colMeta[c.toLowerCase()] = {lineage: m.lineage || [], sensitivity: m.sensitivity || 'PUBLIC'}; }
     const deps = (manifest.parent_map[uid] || []).map(p => { const pn = manifest.nodes[p] || manifest.sources[p]; if (!pn) return null; return pn.resource_type === 'source' ? 'source:' + pn.name : pn.name; }).filter(Boolean);
-    nodes[n.name] = {key: n.name, name: n.name, kind: 'model', layer: (n.tags || []).find(t => ['staging','intermediate','dimension','fact'].includes(t)) || n.config?.schema || '', tags: n.tags || [], cols: cols.map(([c]) => c.toLowerCase()), colMeta, hasMeta, deps};
+    nodes[n.name] = {key: n.name, uid, name: n.name, kind: 'model', layer: (n.tags || []).find(t => ['staging','intermediate','dimension','fact'].includes(t)) || n.config?.schema || '', tags: n.tags || [], cols: cols.map(([c]) => c.toLowerCase()), colMeta, hasMeta, deps};
   }
   // depth via parent_map (sources = 0)
   const memo = {};
@@ -142,7 +148,8 @@
       const x = PAD + i * (W + GAPX), h = HEAD + shown.length * ROW + 8;
       const g = el('g', {class: 'model', transform: `translate(${x},${y})`});
       g.appendChild(el('rect', {class: 'box', width: W, height: h}));
-      g.appendChild(el('text', {class: 'title', x: 10, y: 18}, n.name));
+      const title = el('text', {class: 'title', x: 10, y: 18}, n.name); title.style.cursor = 'pointer'; title.setAttribute('title', 'open in dbt docs');
+      title.addEventListener('click', ev => { ev.stopPropagation(); window.open(docsUrl(n), '_blank'); }); g.appendChild(title);
       g.appendChild(el('text', {class: 'sub', x: 10, y: 32}, n.kind === 'source' ? 'source' : (n.layer || 'model') + (n.hasMeta ? ' · lineage ✓' : '')));
       shown.forEach((c, j) => { const cy = HEAD + j * ROW; const key = n.key + '.' + c; pos[key] = {x, y: y + cy + ROW / 2, w: W};
         const cg = el('g', {class: 'col', 'data-key': key, transform: `translate(0,${cy})`});
@@ -160,6 +167,7 @@
     applySelection();
   }
 
+  const docsUrl = (n, graph) => `../index.html#!/${n.kind === 'source' ? 'source' : 'model'}/${n.uid}${graph ? '?g_v=1' : ''}`;
   function select(key) { selected = key; upSet = traverse(key, 'up'); downSet = traverse(key, 'down'); applySelection(); showDetail(key); }
   function applySelection() {
     svg.querySelectorAll('.col').forEach(c => { const k = c.dataset.key; c.classList.remove('sel', 'up', 'down', 'dim'); if (!selected) return;
@@ -175,13 +183,18 @@
     const li = s => `<li data-k="${s}">${s}</li>`;
     const sources = [...upSet].filter(k => k.startsWith('source:'));
     d.style.display = 'block';
-    d.innerHTML = `<h3>${key}</h3>${desc ? `<div>${desc}</div>` : ''}<div><span class="k">sensitivity</span> ${meta.sensitivity || 'PUBLIC'}</div>
+    const nd = nodes[node]; const links = nd ? `<div style="margin:6px 0"><a href="${docsUrl(nd)}" target="_blank">View documentation ↗</a> · <a href="${docsUrl(nd, true)}" target="_blank">View in dbt graph ↗</a></div>` : '';
+    d.innerHTML = `<h3>${key}</h3>${desc ? `<div>${desc}</div>` : ''}${links}<div><span class="k">sensitivity</span> ${meta.sensitivity || 'PUBLIC'}</div>
       <div class="k">direct upstream (${(meta.lineage || []).length})</div><ul>${(meta.lineage || []).map(li).join('')}</ul>
       <div class="k">raw source columns reached (${sources.length})</div><ul>${sources.map(li).join('')}</ul>
       <div class="k">downstream columns (${downSet.size})</div><ul>${[...downSet].slice(0, 40).map(li).join('')}</ul>`;
     d.querySelectorAll('li').forEach(l => l.addEventListener('click', () => { if (pos[l.dataset.k]) select(l.dataset.k); else { document.getElementById('q').value = l.dataset.k.split('.').pop(); render(); select(l.dataset.k); } }));
   }
   ['q', 'tag', 'onlymeta'].forEach(id => document.getElementById(id).addEventListener('input', () => { render(); }));
+  const themeBtn = document.getElementById('theme');
+  const setTheme = t => { document.documentElement.dataset.theme = t; themeBtn.textContent = t === 'dark' ? '☀ light' : '☾ dark'; try { localStorage.setItem('lineage-theme', t); } catch (e) {} };
+  try { setTheme(localStorage.getItem('lineage-theme') || 'light'); } catch (e) { setTheme('light'); }
+  themeBtn.addEventListener('click', () => setTheme(document.documentElement.dataset.theme === 'dark' ? 'light' : 'dark'));
   document.getElementById('reset').addEventListener('click', () => { selected = null; document.getElementById('q').value = ''; document.getElementById('detail').style.display = 'none'; render(); });
   render();
   const hash = decodeURIComponent(location.hash.slice(1)); if (hash) { document.getElementById('q').value = hash.split('.').pop(); render(); if (pos[hash]) select(hash); }
