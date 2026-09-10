@@ -59,9 +59,8 @@ Add `--to-db` to persist edges into the SYSTEM table `datapai.sys_ai_column_line
 - dbt docs → lineage: floating **Column lineage ⇢** button on every dbt page (model, source, graph), deep-links to the model you are viewing; also linked from the docs overview page.
 - lineage → dbt docs: click a model title, or **View documentation ↗ / View in dbt graph ↗** in the detail panel; header has ← dbt docs / dbt graph. Light theme default, ☾ toggle.
 
-https://dbt.datap.ai/assets/lineage.html (deep link `#<model>.<column>`). Source of truth `datapai-ai-etl/pipeline_planner/static/lineage.html`;
-deploy = copy to `dbt-demo/assets/lineage.html` (dbt copies it to `target/assets/` on `docs generate`; copy to `target/assets/` too for an
-immediate refresh). Reads `../manifest.json`; needs the `--annotate` lineage step + `dbt docs generate` to have run.
+https://dbt.datap.ai/assets/lineage.html (deep link `#<model>.<column>`). Source of truth `datapai-platform-be/lineage/static/lineage.html` (moved 2026-09-10);
+deploy = `python /home/ec2-user/git/datapai-platform-be/scripts/dbt_lineage.py deploy-page --project-dir /home/ec2-user/git/dbt-demo`. Reads `../manifest.json`; needs the `--annotate` lineage step + `dbt docs generate` to have run.
 
 ## Viewing lineage (option 1: dbt docs)
 1. Open https://platform.datap.ai/di/dbt (or https://dbt.datap.ai).
@@ -69,6 +68,7 @@ immediate refresh). Reads `../manifest.json`; needs the `--annotate` lineage ste
 3. Search box also matches column names across models. "Lineage Graph" (bottom right) = table-level DAG; filter with `+fct_daily_price+`.
 
 ## Column lineage for ANY dbt project (artefacts only) + PII inventory
+**Code home is now datapai-platform-be/lineage/** (`scripts/dbt_lineage.py lineage|pii|patch-docs|deploy-page`). The datapai-ai-etl CLI commands below still work as thin wrappers.
 ```bash
 cd /home/ec2-user/git/datapai-ai-etl; set -a; source ~/.env.dev; set +a; PY=/home/ec2-user/venv_ai_etl/bin/python
 # needs target/manifest.json + target/catalog.json (dbt docs generate) in the project

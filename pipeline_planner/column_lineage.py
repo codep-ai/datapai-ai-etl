@@ -1,47 +1,30 @@
 """
-column_lineage — column-level lineage for the generated dbt project, via sqlglot.
+column_lineage (datapai-ai-etl) — generator-specific entry point over the platform lineage package.
 
-dbt-core only knows table-level `ref()` edges. After `dbt compile`/`build`, this reads
-`target/manifest.json` (compiled SQL per node) and resolves every output column of every
-generated model back to upstream (relation, column) pairs with `sqlglot.lineage`.
-
-Outputs (per pipeline):
-  edges:      [{from_node, from_column, to_node, to_column, kind}]   kind = passthrough | derived
-  columns:    {model: {column: {"sources": [...], "sensitivity": "PII_HIGH|...|PUBLIC"}}}
-  unresolved: [{model, column, error}]                               parse problems (availability > strictness)
-
-Sensitivity propagation: a column inherits the max sensitivity of the source columns it
-derives from (introspector's PII classification) — this is what feeds the governance
-gate a restricted-column list for the *generated* marts.
-
-Design: docs/architecture/column-level-lineage.md
+The engine lives in datapai-platform-be/lineage/ (moved 2026-09-10; imported via DATAPAI_PLATFORM_DIR / platform_init).
+This module keeps only what needs the generator's state (MedallionPlan, SourceCatalog, declared columns):
+  compute_lineage()      — lineage for a plan the generator just built (schema from generator state + introspector catalog)
+  write_lineage_table()  — optional Iceberg projection into the warehouse (needs pipeline_planner.snowflake_conn)
+and re-exports the platform functions so existing imports keep working.
 """
 from __future__ import annotations
 
 import json
 import logging
 import os
-import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
 
+import platform_init  # noqa: F401
+from lineage.column_lineage import (  # noqa: F401  re-exports
+    DOCS_INJECT_MARKER, _leaf_sources, _load_manifest, _node_by_relation, _relation_key, annotate_yaml,
+    lineage_from_artifacts, patch_dbt_docs, set_ai_access_level, to_mermaid, write_lineage_pg, yaml_paths_from_manifest,
+)
+from lineage.pii_classifier import max_sensitivity
+
 from .models import MedallionPlan, SourceCatalog
-from ._vendored.pii_classifier import max_sensitivity
-from . import pii
 
 logger = logging.getLogger(__name__)
-
-
-def _load_manifest(project_dir: str) -> Dict[str, Any]:
-    p = Path(project_dir) / "target" / "manifest.json"
-    if not p.exists():
-        raise FileNotFoundError(f"{p} not found — run dbt compile/build first")
-    return json.loads(p.read_text(encoding="utf-8"))
-
-
-def _relation_key(node: Dict[str, Any]) -> str:
-    """database.schema.identifier in lower case, as it appears in compiled SQL."""
-    return ".".join(str(node.get(k) or "").lower() for k in ("database", "schema", "alias")).strip(".")
 
 
 def _schema_for_sqlglot(manifest: Dict[str, Any], generated: Dict[str, Dict[str, Any]], catalog: SourceCatalog,
@@ -81,49 +64,6 @@ def _schema_for_sqlglot(manifest: Dict[str, Any], generated: Dict[str, Dict[str,
         put(str(src.get("database") or ""), str(src.get("schema") or ""), str(src.get("identifier") or src.get("name")), cols)
     return MappingSchema(nested, dialect=dialect, normalize=True)
 
-
-def _node_by_relation(manifest: Dict[str, Any]) -> Dict[str, str]:
-    out = {}
-    for uid, node in manifest.get("nodes", {}).items():
-        if node.get("resource_type") == "model":
-            out[_relation_key(node)] = node["name"]
-    for uid, src in manifest.get("sources", {}).items():
-        key = ".".join(str(src.get(k) or "").lower() for k in ("database", "schema", "identifier")).strip(".")
-        out[key] = f"source:{src.get('name')}"
-    return out
-
-
-def _leaf_sources(node, dialect: str) -> List[Dict[str, str]]:
-    """Walk a sqlglot lineage Node tree and collect (table, column) leaves."""
-    from sqlglot import exp
-
-    leaves: List[Dict[str, str]] = []
-    stack = [node]
-    seen = set()
-    while stack:
-        n = stack.pop()
-        if id(n) in seen:
-            continue
-        seen.add(id(n))
-        if n.downstream:
-            stack.extend(n.downstream)
-            continue
-        src = n.source
-        col_name = n.name.split(".")[-1]
-        if isinstance(n.expression, exp.Column):
-            col_name = n.expression.name
-        elif isinstance(n.expression, exp.Alias) and isinstance(n.expression.this, exp.Column):
-            col_name = n.expression.this.name
-        table = None
-        if isinstance(src, exp.Table):
-            table = ".".join(p for p in (src.catalog, src.db, src.name) if p).lower()
-        elif n.name and n.name.count(".") >= 1 and not n.downstream:
-            # fully-qualified leaf name "db.schema.table.column" when source is not an exp.Table
-            parts = n.name.split(".")
-            table, col_name = ".".join(parts[:-1]).lower(), parts[-1]
-        if table:
-            leaves.append({"table": table.replace('"', ""), "column": (col_name or "").lower().strip('"')})
-    return leaves
 
 
 def compute_lineage(project_dir: str, plan: MedallionPlan, catalog: SourceCatalog,
@@ -199,127 +139,6 @@ def compute_lineage(project_dir: str, plan: MedallionPlan, catalog: SourceCatalo
             "summary": {m: {"columns": len(c), "traced": sum(1 for v in c.values() if v["sources"])} for m, c in columns.items()}}
 
 
-def yaml_paths_from_manifest(project_dir: str) -> Dict[str, Dict[str, str]]:
-    """{model_name: {"yml_path": ...}} for every model with a schema YAML (patch_path) — lets annotate_yaml run on any project."""
-    manifest = _load_manifest(project_dir)
-    out: Dict[str, Dict[str, str]] = {}
-    for n in manifest.get("nodes", {}).values():
-        if n.get("resource_type") == "model" and n.get("patch_path"):
-            rel = n["patch_path"].split("://", 1)[-1]
-            out[n["name"]] = {"yml_path": str(Path(project_dir) / rel)}
-    return out
-
-
-def set_ai_access_level(project_dir: str, models: List[str], level: str) -> List[str]:
-    """
-    EXPLICIT opt-in: write meta.datapai.ai_access_level (deny|internal|restricted|approved) on the given models'
-    schema YAML. The platform guardrail is deny-by-default and short-circuits every column of a non-eligible
-    model to DENY before reading pii meta — so PII masking metadata only takes effect once a human sets this.
-    Never called automatically by the lineage/PII steps.
-    """
-    import yaml
-    assert level in ("deny", "internal", "restricted", "approved"), level
-    paths = yaml_paths_from_manifest(project_dir)
-    touched: List[str] = []
-    for m in models:
-        yp = paths.get(m, {}).get("yml_path")
-        if not yp or not Path(yp).exists():
-            continue
-        doc = yaml.safe_load(Path(yp).read_text(encoding="utf-8")) or {}
-        changed = False
-        for md in doc.get("models", []):
-            if md.get("name") == m:
-                md.setdefault("meta", {}).setdefault("datapai", {})["ai_access_level"] = level
-                md["meta"]["datapai"].setdefault("ai_enabled", level != "deny")
-                changed = True
-        if changed:
-            Path(yp).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120), encoding="utf-8")
-            touched.append(yp)
-    return touched
-
-
-def annotate_yaml(lineage: Dict[str, Any], generated: Dict[str, Dict[str, Any]]) -> List[str]:
-    """
-    Write lineage back into the generated dbt YAML as column `meta` (dbt-native: shows in dbt docs,
-    readable by Lightdash / Elementary / catalog ingesters):
-        meta: {lineage: ["source:prices.ticker"], sensitivity: "PUBLIC"}
-    Returns the YAML paths touched.
-    """
-    import yaml
-
-    touched: List[str] = []
-    for model, cols in lineage["columns"].items():
-        yml_path = generated.get(model, {}).get("yml_path")
-        if not yml_path or not Path(yml_path).exists():
-            continue
-        doc = yaml.safe_load(Path(yml_path).read_text(encoding="utf-8")) or {}
-        changed = False
-        for m in doc.get("models", []):
-            if m.get("name") != model:
-                continue
-            for c in m.get("columns", []) or []:
-                info = cols.get(str(c.get("name", "")).lower())
-                if not info:
-                    continue
-                c.setdefault("meta", {})["lineage"] = [f"{s['node']}.{s['column']}" for s in info["sources"]]
-                c["meta"]["sensitivity"] = info["sensitivity"]
-                gm = pii.guardrail_column_meta(info["sensitivity"])
-                if gm:
-                    c["meta"]["datapai"] = {**c["meta"].get("datapai", {}), **gm}
-                changed = True
-            m.setdefault("meta", {})["column_lineage_dialect"] = lineage["dialect"]
-            mm = pii.guardrail_model_meta([v["sensitivity"] for v in cols.values()])
-            if mm:
-                m["meta"]["datapai"] = {**m["meta"].get("datapai", {}), **mm}
-        if changed:
-            Path(yml_path).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120), encoding="utf-8")
-            touched.append(yml_path)
-    return touched
-
-
-def _edge_rows(lineage: Dict[str, Any], pipeline_id: str, run_id: str, run_at) -> List[tuple]:
-    rows = []
-    for e in lineage["edges"]:
-        sens = lineage["columns"].get(e["to_node"], {}).get(e["to_column"], {}).get("sensitivity", "PUBLIC")
-        rows.append((pipeline_id, run_id, run_at, lineage["dialect"], e["from_node"], e["from_column"],
-                     e["to_node"], e["to_column"], e["kind"], sens, bool(e.get("degraded", False))))
-    return rows
-
-
-def write_lineage_pg(lineage: Dict[str, Any], pipeline_id: str, run_id: str, prefix: str = "FRAMEWORK_DB") -> Dict[str, Any]:
-    """
-    SYSTEM store (decision 2026-09-10): datapai.sys_ai_column_lineage in the framework Postgres
-    (migrations/002_sys_ai_column_lineage.sql). Engine-independent, joinable to sys_ai_pipeline /
-    guardrail / audit, cheap per-run upserts. Idempotent per (pipeline_id, run_id).
-    Connection from <prefix>_HOST/PORT/NAME/USER/PASSWORD (.env.dev: FRAMEWORK_DB_*).
-    """
-    from datetime import datetime, timezone
-    import psycopg2
-    from psycopg2.extras import execute_values
-
-    conn = psycopg2.connect(
-        host=os.getenv(f"{prefix}_HOST", "localhost"), port=int(os.getenv(f"{prefix}_PORT", "5433")),
-        dbname=os.getenv(f"{prefix}_NAME", "postgres"), user=os.getenv(f"{prefix}_USER", "postgres"),
-        password=os.getenv(f"{prefix}_PASSWORD", "postgres"), connect_timeout=10,
-    )
-    run_at = datetime.now(timezone.utc)
-    rows = _edge_rows(lineage, pipeline_id, run_id, run_at)
-    try:
-        cur = conn.cursor()
-        cur.execute("DELETE FROM datapai.sys_ai_column_lineage WHERE pipeline_id=%s AND run_id=%s", (pipeline_id, run_id))
-        if rows:
-            execute_values(cur,
-                "INSERT INTO datapai.sys_ai_column_lineage (pipeline_id, run_id, run_at, dialect, from_node, from_column, "
-                "to_node, to_column, kind, to_sensitivity, degraded) VALUES %s", rows, page_size=500)
-        conn.commit()
-        cur.execute("SELECT count(*) FROM datapai.sys_ai_column_lineage WHERE pipeline_id=%s AND run_id=%s", (pipeline_id, run_id))
-        n = cur.fetchone()[0]
-        cur.close()
-    finally:
-        conn.close()
-    logger.info("sys_ai_column_lineage: %d edges for %s/%s", n, pipeline_id, run_id)
-    return {"table": "datapai.sys_ai_column_lineage", "rows": int(n), "pipeline_id": pipeline_id, "run_id": run_id}
-
 
 def write_lineage_table(lineage: Dict[str, Any], pipeline_id: str, run_id: str,
                         database: Optional[str] = None, schema: Optional[str] = None,
@@ -368,150 +187,3 @@ def write_lineage_table(lineage: Dict[str, Any], pipeline_id: str, run_id: str,
     return {"table": fq, "rows": int(n), "pipeline_id": pipeline_id, "run_id": run_id}
 
 
-DOCS_INJECT_MARKER = "<!-- datapai-ai-etl:column-lineage-link -->"
-
-
-def patch_dbt_docs(project_dir: str) -> bool:
-    """
-    Inject the floating "Column lineage" link into dbt docs' target/index.html so the dbt pages (model,
-    source, graph) link back to assets/lineage.html. dbt rewrites index.html on every `docs generate`,
-    so this runs after it; idempotent via DOCS_INJECT_MARKER. Returns True when the file was modified.
-    """
-    idx = Path(project_dir) / "target" / "index.html"
-    if not idx.exists():
-        logger.warning("patch_dbt_docs: %s not found (run dbt docs generate first)", idx)
-        return False
-    html = idx.read_text(encoding="utf-8")
-    if DOCS_INJECT_MARKER in html:
-        return False
-    snippet = (Path(__file__).parent / "static" / "dbt_docs_inject.html").read_text(encoding="utf-8")
-    pos = html.rfind("</body>")
-    html = html[:pos] + snippet + html[pos:] if pos >= 0 else html + snippet
-    idx.write_text(html, encoding="utf-8")
-    logger.info("patched %s with column-lineage link", idx)
-    return True
-
-
-def lineage_from_artifacts(project_dir: str, dialect: str = "snowflake", select: Optional[str] = None) -> Dict[str, Any]:
-    """
-    Column-level lineage for ANY dbt project from its own artefacts only: target/manifest.json
-    (compiled SQL, DAG) + target/catalog.json (real columns from the warehouse, `dbt docs generate`).
-    No generator state, no introspector. `select` = substring/tag/path filter on models
-    (e.g. "chinook", "tag:stock_ai", "models/cfd"). Source-column sensitivity comes from the
-    name-based PII heuristics, so PII propagation works on hand-written projects too.
-    """
-    import sqlglot
-    from sqlglot.lineage import lineage as sg_lineage
-    from sqlglot.schema import MappingSchema
-    from ._vendored.pii_classifier import classify_column
-
-    manifest = _load_manifest(project_dir)
-    cat_path = Path(project_dir) / "target" / "catalog.json"
-    if not cat_path.exists():
-        raise FileNotFoundError(f"{cat_path} not found — run `dbt docs generate` first")
-    cat = json.loads(cat_path.read_text(encoding="utf-8"))
-    cat_nodes = {**cat.get("nodes", {}), **cat.get("sources", {})}
-
-    def cols_of(uid: str) -> Dict[str, str]:
-        return {c["name"].lower(): c["type"] for c in cat_nodes.get(uid, {}).get("columns", {}).values()}
-
-    nested: Dict[str, Dict[str, Dict[str, Dict[str, str]]]] = {}
-    rel2name: Dict[str, str] = {}
-    src_sens: Dict[str, Dict[str, str]] = {}
-    for uid, n in manifest.get("nodes", {}).items():
-        if n.get("resource_type") not in ("model", "seed", "snapshot"):
-            continue
-        cols = cols_of(uid)
-        key = (str(n.get("database") or ""), str(n.get("schema") or ""), str(n.get("alias") or n["name"]))
-        if cols:
-            nested.setdefault(key[0], {}).setdefault(key[1], {})[key[2]] = cols
-        rel2name[".".join(key).lower()] = n["name"]
-    for uid, s in manifest.get("sources", {}).items():
-        cols = cols_of(uid)
-        key = (str(s.get("database") or ""), str(s.get("schema") or ""), str(s.get("identifier") or s["name"]))
-        if cols:
-            nested.setdefault(key[0], {}).setdefault(key[1], {})[key[2]] = cols
-        rel2name[".".join(key).lower()] = f"source:{s['name']}"
-        src_sens[f"source:{s['name']}"] = {c: classify_column(c, [], t)[1] for c, t in cols.items()}
-    schema = MappingSchema(nested, dialect=dialect, normalize=True)
-
-    def selected(n: Dict[str, Any]) -> bool:
-        if not select:
-            return True
-        if select.startswith("tag:"):
-            return select[4:] in (n.get("tags") or [])
-        return select in n.get("original_file_path", "") or select in n["name"] or select in n.get("fqn", [])
-
-    models = [n for n in manifest["nodes"].values() if n.get("resource_type") == "model" and selected(n)]
-    # topological order via parent_map so upstream sensitivities exist first
-    order, seen = [], set()
-    def visit(uid):
-        if uid in seen: return
-        seen.add(uid)
-        for p in manifest.get("parent_map", {}).get(uid, []):
-            if p in manifest["nodes"] and manifest["nodes"][p].get("resource_type") == "model": visit(p)
-        order.append(uid)
-    for n in models: visit(n["unique_id"])
-    by_uid = manifest["nodes"]
-    wanted = {n["unique_id"] for n in models}
-
-    edges: List[Dict[str, Any]] = []; columns: Dict[str, Dict[str, Dict[str, Any]]] = {}; unresolved: List[Dict[str, Any]] = []
-    for uid in order:
-        if uid not in wanted: continue
-        node = by_uid[uid]; name = node["name"]; sql = node.get("compiled_code")
-        if not sql:
-            unresolved.append({"model": name, "column": "*", "error": "no compiled_code (run dbt compile/build)"}); continue
-        out_cols = list(cols_of(uid)) or []
-        if not out_cols:
-            try:
-                parsed = sqlglot.parse_one(sql, read=dialect); out_cols = [e.alias_or_name.lower() for e in parsed.selects]
-            except Exception as exc:
-                unresolved.append({"model": name, "column": "*", "error": f"parse: {exc}"[:300]}); continue
-        columns[name] = {}
-        for col in out_cols:
-            try:
-                degraded = False
-                try:
-                    tree = sg_lineage(col, sql, schema=schema, dialect=dialect)
-                except Exception as first:
-                    tree = sg_lineage(col, sql, dialect=dialect); degraded = True
-                    unresolved.append({"model": name, "column": col, "error": f"schema-strict: {first}"[:300], "degraded": True})
-                leaves = [lf for lf in _leaf_sources(tree, dialect) if lf["table"] in rel2name]
-                srcs = [{"node": rel2name[lf["table"]], "column": lf["column"]} for lf in leaves]
-                for s_ in srcs:
-                    edges.append({"from_node": s_["node"], "from_column": s_["column"], "to_node": name, "to_column": col,
-                                  "kind": "passthrough" if len(srcs) == 1 and s_["column"] == col else "derived", **({"degraded": True} if degraded else {})})
-                # sensitivity: declared source → upstream model already traced → root node (seed / un-selected model):
-                # classify by column name so PII in raw seeds (chinook customer.email) still propagates
-                sens = []
-                for s_ in srcs:
-                    if s_["node"] in src_sens:
-                        sens.append(src_sens[s_["node"]].get(s_["column"], "PUBLIC"))
-                    elif s_["node"] in columns:
-                        sens.append(columns[s_["node"]].get(s_["column"], {}).get("sensitivity", "PUBLIC"))
-                    else:
-                        sens.append(classify_column(s_["column"], [])[1])
-                columns[name][col] = {"sources": srcs, "sensitivity": max_sensitivity(sens) if sens else "PUBLIC"}
-            except Exception as exc:
-                unresolved.append({"model": name, "column": col, "error": str(exc)[:300]})
-    restricted = sorted({f"{m}.{c}" for m, cs in columns.items() for c, v in cs.items() if v["sensitivity"] != "PUBLIC"})
-    return {"dialect": dialect, "models": len(columns), "edges": edges, "columns": columns,
-            "unresolved": [u for u in unresolved if not u.get("degraded")], "warnings": [u for u in unresolved if u.get("degraded")],
-            "restricted_columns": restricted,
-            "summary": {m: {"columns": len(c), "traced": sum(1 for v in c.values() if v["sources"])} for m, c in columns.items()}}
-
-
-def to_mermaid(lineage: Dict[str, Any], model: Optional[str] = None, max_edges: int = 400) -> str:
-    """Quick visual for the demo: column-level edges (optionally only into one model)."""
-    lines = ["graph LR"]
-    n = 0
-    for e in lineage["edges"]:
-        if model and e["to_node"] != model:
-            continue
-        a = re.sub(r"[^A-Za-z0-9_]", "_", f"{e['from_node']}__{e['from_column']}")
-        b = re.sub(r"[^A-Za-z0-9_]", "_", f"{e['to_node']}__{e['to_column']}")
-        lines.append(f'  {a}["{e["from_node"]}.{e["from_column"]}"] --> {b}["{e["to_node"]}.{e["to_column"]}"]')
-        n += 1
-        if n >= max_edges:
-            break
-    return "\n".join(lines)
