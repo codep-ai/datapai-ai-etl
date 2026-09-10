@@ -44,7 +44,10 @@ _GUARDRAIL_MAP = {
     "PII_LOW":    {"pii": "indirect", "security_class": "internal",     "masking_rule": "partial_mask"},
 }
 _STRATEGY_TO_RULE = {"redact": "redact", "hash": "hash", "partial": "partial_mask", "tokenise": "tokenise"}
-_DEFAULT_ANSWER_MODE = {"PII_HIGH": "deny", "FINANCIAL": "aggregate_only", "PII_MEDIUM": "masked", "PII_LOW": "masked"}
+# Permissive by default (Donny 2026-09-10: "don't make too many restrictions as default unless the customer requires").
+# Columns are CLASSIFIED and the recommended masking strategy is recorded, but AI answers are full and nothing is
+# blocked until a customer flips sys_common_config (pii_guardrail_answer_mode_<LEVEL>, pii_masking_apply_mode, pii_hitl_required_levels).
+_DEFAULT_ANSWER_MODE = {"PII_HIGH": "full", "FINANCIAL": "full", "PII_MEDIUM": "full", "PII_LOW": "full"}
 _MODEL_SENSITIVITY = {"PII_HIGH": "restricted", "FINANCIAL": "confidential", "PII_MEDIUM": "confidential", "PII_LOW": "internal"}
 
 _POLICY_CACHE: Optional[Dict[str, Any]] = None
@@ -61,7 +64,7 @@ def load_policy(prefix: str = "FRAMEWORK_DB", refresh: bool = False) -> Dict[str
     if _POLICY_CACHE and not refresh:
         return _POLICY_CACHE
     levels = {lvl: {**DEFAULT_POLICY[lvl], "answer_mode": _DEFAULT_ANSWER_MODE[lvl]} for lvl in LEVELS}
-    pol: Dict[str, Any] = {"levels": levels, "apply_mode": "dry_run", "hitl_levels": ["PII_HIGH", "FINANCIAL"], "source": "defaults"}
+    pol: Dict[str, Any] = {"levels": levels, "apply_mode": "dry_run", "hitl_levels": [], "source": "defaults"}
     try:
         import psycopg2
         conn = psycopg2.connect(host=os.getenv(f"{prefix}_HOST", "localhost"), port=int(os.getenv(f"{prefix}_PORT", "5433")),
@@ -94,7 +97,7 @@ def guardrail_column_meta(level: str, policy: Optional[Dict[str, Any]] = None) -
     base["masking_rule"] = _STRATEGY_TO_RULE.get(pol["strategy"], base["masking_rule"])
     base["answer_mode"] = pol["answer_mode"]
     base["allowed_in_output"] = pol["answer_mode"] in ("masked", "full")
-    base["allowed_in_export"] = False
+    base["allowed_in_export"] = pol["answer_mode"] == "full"
     base["ai_sensitivity_source"] = "datapai-ai-etl column lineage"
     return base
 
@@ -105,8 +108,10 @@ def guardrail_model_meta(levels_in_model: List[str]) -> Dict[str, Any]:
     if not non_public:
         return {}
     top = max(non_public, key=lambda l: SENSITIVITY_RANK[l])
+    modes = [load_policy()["levels"][l]["answer_mode"] for l in non_public]
+    order = ["full", "masked", "aggregate_only", "metadata_only", "deny"]
     return {"contains_pii": any(l != "FINANCIAL" for l in non_public), "sensitivity_level": _MODEL_SENSITIVITY[top],
-            "default_answer_mode": "masked" if top in ("PII_LOW", "PII_MEDIUM") else ("aggregate_only" if top == "FINANCIAL" else "deny")}
+            "default_answer_mode": max(modes, key=order.index)}
 
 
 def report(lineage: Dict[str, Any]) -> Dict[str, Any]:

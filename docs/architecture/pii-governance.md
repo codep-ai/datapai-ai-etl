@@ -41,7 +41,9 @@ heuristics        every upstream hop             tenant in sys_common_config    
 default for models without `meta.datapai.ai_access_level` is now DB-driven (`sys_common_config` guardrail /
 `guardrail_default_ai_access_level`, migration 006) and set to `approved`; protection is column-level from our PII metadata.
 A regulated deployment flips the row to `deny` for fail-closed. Explicit per-model meta (`--set-ai-access`) still wins.
-Verified: 127/127 models eligible, 40 PII columns answer `masked`, 869/882 columns output-safe, 0 deny. Once eligible, PII columns answer `masked` with the configured `masking_rule`, PII_HIGH `deny`,
+**Defaults are permissive (Donny 2026-09-10: no restrictions unless the customer requires):** every level answers `full`, no HITL levels,
+masking DDL dry-run (migration 007). Classification and recommended masking strategy are still recorded per column so a customer
+requirement is a config flip, not a rebuild. Verified: 127/127 models eligible, 869/882 columns answer full, 0 deny, 40 PII columns classified. Once eligible, PII columns answer `masked` with the configured `masking_rule`, PII_HIGH `deny`,
 FINANCIAL `aggregate_only`. Models without a schema YAML (e.g. chinook `obt_invoice`) are invisible to the guardrail —
 `dbt docs`/codegen-generated YAML is a prerequisite.
 
