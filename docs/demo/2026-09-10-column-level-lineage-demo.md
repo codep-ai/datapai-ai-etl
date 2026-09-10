@@ -57,8 +57,13 @@ source tables, two layers — traced automatically.
 `dbt docs generate && dbt docs serve` shows it per column; `meta.sensitivity` is the PII class propagated from the
 introspector's scan of the raw columns (max over upstream columns) — the restricted-column list the governance gate uses.
 
-## 4. Graph (Mermaid, `docs/samples/2026-09-10-stock_column_lineage_fct_daily_price.mmd`)
-Render with any Mermaid viewer (GitHub, VS Code, mermaid.live). Column-level edges into `fct_daily_price`.
+## 4. Interactive column graph — https://dbt.datap.ai/assets/lineage.html
+Static overlay inside the dbt docs site (`dbt-demo/assets/lineage.html`, source `pipeline_planner/static/lineage.html`). Reads the same
+`manifest.json`, draws columns as nodes grouped by model and layered by depth, no libraries. Search a column or model, click a column to
+highlight upstream (orange) and downstream (green) paths, dashed = derived, colour bar = PII sensitivity, detail panel lists the raw source
+columns reached. Deep link: `#fct_daily_price.close_usd`. Survives `dbt docs generate` because dbt copies `asset-paths` into `target/`.
+
+Mermaid export also available: `docs/samples/2026-09-10-stock_column_lineage_fct_daily_price.mmd`.
 
 ## Coverage on this run
 | Model | columns | traced to upstream |

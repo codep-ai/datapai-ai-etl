@@ -49,6 +49,11 @@ cd /home/ec2-user/git/datapai-ai-etl; set -a; source ~/.env.dev; set +a
 ```
 `--annotate` writes `meta.lineage` / `meta.sensitivity` into the generated YAML; then run the docs refresh above so `dbt.datap.ai` shows it.
 
+## Viewing lineage — column graph
+https://dbt.datap.ai/assets/lineage.html (deep link `#<model>.<column>`). Source of truth `datapai-ai-etl/pipeline_planner/static/lineage.html`;
+deploy = copy to `dbt-demo/assets/lineage.html` (dbt copies it to `target/assets/` on `docs generate`; copy to `target/assets/` too for an
+immediate refresh). Reads `../manifest.json`; needs the `--annotate` lineage step + `dbt docs generate` to have run.
+
 ## Viewing lineage (option 1: dbt docs)
 1. Open https://platform.datap.ai/di/dbt (or https://dbt.datap.ai).
 2. Search `fct_daily_price` → open the model → Columns → expand `close_usd` → **meta** shows `lineage` and `sensitivity`.

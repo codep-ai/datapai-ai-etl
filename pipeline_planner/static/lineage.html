@@ -1,0 +1,191 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Column-level lineage</title>
+<style>
+  :root { --bg:#0f1419; --panel:#161c24; --line:#2a3441; --text:#e6edf3; --muted:#8b98a5; --accent:#4cc2ff;
+          --up:#ffb454; --down:#7ee787; --pub:#3b4652; --low:#5a7d2a; --med:#b58900; --fin:#c96a1a; --high:#d1383d; }
+  * { box-sizing:border-box; }
+  body { margin:0; background:var(--bg); color:var(--text); font:13px/1.4 -apple-system,Segoe UI,Roboto,Helvetica,Arial,sans-serif; }
+  header { display:flex; gap:12px; align-items:center; padding:10px 14px; background:var(--panel); border-bottom:1px solid var(--line); position:sticky; top:0; z-index:2; flex-wrap:wrap; }
+  header h1 { font-size:15px; margin:0 8px 0 0; font-weight:600; }
+  input,select,button { background:#0b0f14; color:var(--text); border:1px solid var(--line); border-radius:6px; padding:6px 8px; font:inherit; }
+  input { width:280px; }
+  button { cursor:pointer; } button:hover { border-color:var(--accent); }
+  .pill { padding:2px 8px; border-radius:10px; background:#0b0f14; border:1px solid var(--line); color:var(--muted); }
+  .legend span { display:inline-block; width:10px; height:10px; border-radius:2px; margin:0 4px 0 10px; vertical-align:-1px; }
+  #wrap { position:relative; overflow:auto; height:calc(100vh - 52px); }
+  svg { display:block; min-width:100%; }
+  .model rect.box { fill:var(--panel); stroke:var(--line); rx:6; }
+  .model text.title { font-weight:600; fill:var(--text); }
+  .model text.sub { fill:var(--muted); font-size:11px; }
+  .col rect { fill:transparent; }
+  .col:hover rect { fill:#1f2a36; }
+  .col text { fill:var(--text); font-size:12px; }
+  .col.dim text { fill:var(--muted); opacity:.45; }
+  .col.sel rect { fill:#223447; stroke:var(--accent); }
+  .col.up rect { fill:#3a2b12; } .col.down rect { fill:#12321f; }
+  .sens { width:6px; }
+  path.edge { fill:none; stroke:#3c4a5a; stroke-width:1.2; opacity:.55; }
+  path.edge.dim { opacity:.06; }
+  path.edge.up { stroke:var(--up); stroke-width:2; opacity:.95; }
+  path.edge.down { stroke:var(--down); stroke-width:2; opacity:.95; }
+  path.edge.derived { stroke-dasharray:4 3; }
+  #detail { position:fixed; right:12px; bottom:12px; width:360px; max-height:45vh; overflow:auto; background:var(--panel); border:1px solid var(--line); border-radius:8px; padding:10px 12px; display:none; z-index:3; }
+  #detail h3 { margin:0 0 6px; font-size:13px; } #detail .k { color:var(--muted); }
+  #detail ul { margin:4px 0 8px; padding-left:16px; } #detail li { cursor:pointer; } #detail li:hover { color:var(--accent); }
+  #empty { padding:40px; color:var(--muted); }
+</style>
+</head>
+<body>
+<header>
+  <h1>Column-level lineage</h1>
+  <input id="q" placeholder="search column or model (e.g. close_usd, fct_daily_price)" autofocus>
+  <select id="tag"></select>
+  <label><input type="checkbox" id="onlymeta" checked style="width:auto"> only models with lineage meta</label>
+  <button id="reset">reset</button>
+  <span class="pill" id="stats">loading manifest.json…</span>
+  <span class="legend"><span style="background:var(--pub)"></span>PUBLIC<span style="background:var(--low)"></span>PII_LOW<span style="background:var(--med)"></span>PII_MEDIUM<span style="background:var(--fin)"></span>FINANCIAL<span style="background:var(--high)"></span>PII_HIGH</span>
+  <span class="legend"><span style="background:var(--up)"></span>upstream<span style="background:var(--down)"></span>downstream · dashed = derived</span>
+</header>
+<div id="wrap"><svg id="g"></svg><div id="empty" hidden></div></div>
+<div id="detail"></div>
+<script>
+(async function () {
+  // ── load manifest (same origin as dbt docs; ../manifest.json when served from /assets/) ─────────
+  const candidates = ['../manifest.json', './manifest.json', '/manifest.json'];
+  let manifest = null;
+  for (const u of candidates) { try { const r = await fetch(u, {cache:'no-store'}); if (r.ok) { manifest = await r.json(); break; } } catch (e) {} }
+  const stats = document.getElementById('stats');
+  if (!manifest) { stats.textContent = 'manifest.json not found'; return; }
+
+  // ── build column graph from meta.lineage ────────────────────────────────────────────────────────
+  const nodes = {};                 // key -> {key, name, kind, layer, tags, cols:[...], depth}
+  const srcByName = {};
+  for (const [uid, s] of Object.entries(manifest.sources || {})) {
+    const key = 'source:' + s.name; srcByName[s.name] = key;
+    nodes[key] = {key, name: s.name, kind: 'source', tags: s.tags || [], cols: Object.keys(s.columns || {}).map(c => c.toLowerCase()), colMeta: {}, hasMeta: false, depth: 0, deps: []};
+  }
+  const modelByName = {};
+  for (const [uid, n] of Object.entries(manifest.nodes || {})) {
+    if (n.resource_type !== 'model') continue;
+    modelByName[n.name] = n.name;
+    const cols = Object.entries(n.columns || {});
+    const colMeta = {}; let hasMeta = false;
+    for (const [c, info] of cols) { const m = (info.meta || {}); if (m.lineage) hasMeta = true; colMeta[c.toLowerCase()] = {lineage: m.lineage || [], sensitivity: m.sensitivity || 'PUBLIC'}; }
+    const deps = (manifest.parent_map[uid] || []).map(p => { const pn = manifest.nodes[p] || manifest.sources[p]; if (!pn) return null; return pn.resource_type === 'source' ? 'source:' + pn.name : pn.name; }).filter(Boolean);
+    nodes[n.name] = {key: n.name, name: n.name, kind: 'model', layer: (n.tags || []).find(t => ['staging','intermediate','dimension','fact'].includes(t)) || n.config?.schema || '', tags: n.tags || [], cols: cols.map(([c]) => c.toLowerCase()), colMeta, hasMeta, deps};
+  }
+  // depth via parent_map (sources = 0)
+  const memo = {};
+  const depth = k => { if (memo[k] !== undefined) return memo[k]; const n = nodes[k]; if (!n || n.kind === 'source') return memo[k] = 0; memo[k] = -1; const d = 1 + Math.max(0, ...n.deps.map(depth)); return memo[k] = d; };
+  Object.keys(nodes).forEach(k => nodes[k].depth = depth(k));
+
+  // edges from meta.lineage: "node.column"
+  const edges = []; // {from:{node,col}, to:{node,col}, kind}
+  for (const n of Object.values(nodes)) {
+    if (n.kind !== 'model') continue;
+    for (const [col, m] of Object.entries(n.colMeta)) {
+      for (const ref of m.lineage) {
+        const i = ref.lastIndexOf('.'); if (i < 0) continue;
+        const fromNode = ref.slice(0, i), fromCol = ref.slice(i + 1).toLowerCase();
+        if (!nodes[fromNode]) continue;
+        if (!nodes[fromNode].cols.includes(fromCol)) nodes[fromNode].cols.push(fromCol);
+        edges.push({from: {node: fromNode, col: fromCol}, to: {node: n.name, col}, kind: (m.lineage.length === 1 && fromCol === col) ? 'passthrough' : 'derived'});
+      }
+    }
+  }
+  // sensitivity for source columns: inherit nothing (PUBLIC unless annotated) — sources carry meta via YAML if present
+  const tags = [...new Set(Object.values(nodes).flatMap(n => n.tags))].filter(t => /_ai$|^stock|^cfd|^chinook|^traceab/.test(t)).sort();
+  const tagSel = document.getElementById('tag');
+  tagSel.innerHTML = '<option value="">all tags</option>' + tags.map(t => `<option ${t.endsWith('_ai') ? 'selected' : ''}>${t}</option>`).join('');
+
+  // ── render ───────────────────────────────────────────────────────────────────────────────────────
+  const svg = document.getElementById('g'), NS = 'http://www.w3.org/2000/svg';
+  const el = (t, a = {}, txt) => { const e = document.createElementNS(NS, t); for (const [k, v] of Object.entries(a)) e.setAttribute(k, v); if (txt !== undefined) e.textContent = txt; return e; };
+  const sensColor = s => ({PII_HIGH:'var(--high)', FINANCIAL:'var(--fin)', PII_MEDIUM:'var(--med)', PII_LOW:'var(--low)'}[s] || 'var(--pub)');
+  const ROW = 18, HEAD = 40, W = 250, GAPX = 120, GAPY = 26, PAD = 20;
+  let selected = null, upSet = new Set(), downSet = new Set(), pos = {};
+
+  function visibleNodes() {
+    const tag = tagSel.value, onlyMeta = document.getElementById('onlymeta').checked, q = document.getElementById('q').value.trim().toLowerCase();
+    let vis = Object.values(nodes).filter(n => n.kind === 'source' || !onlyMeta || n.hasMeta);
+    if (tag) { const tagged = new Set(vis.filter(n => n.tags.includes(tag)).map(n => n.key)); const withSrc = new Set(tagged); vis.forEach(n => { if (tagged.has(n.key)) n.deps.forEach(d => withSrc.add(d)); }); vis = vis.filter(n => withSrc.has(n.key)); }
+    else vis = vis.filter(n => n.kind !== 'source' || edges.some(e => e.from.node === n.key));
+    if (q) { const hit = new Set(vis.filter(n => n.name.toLowerCase().includes(q) || n.cols.some(c => c.includes(q))).map(n => n.key));
+      // include direct neighbours of hits so the path is visible
+      edges.forEach(e => { if (hit.has(e.from.node) || hit.has(e.to.node)) { hit.add(e.from.node); hit.add(e.to.node); } });
+      vis = vis.filter(n => hit.has(n.key)); }
+    return vis;
+  }
+
+  function traverse(start, dir) { // dir: 'up' follows edges to->from, 'down' from->to
+    const seen = new Set(); const stack = [start];
+    while (stack.length) { const k = stack.pop(); if (seen.has(k)) continue; seen.add(k);
+      for (const e of edges) { if (dir === 'up' && e.to.node + '.' + e.to.col === k) stack.push(e.from.node + '.' + e.from.col);
+                               if (dir === 'down' && e.from.node + '.' + e.from.col === k) stack.push(e.to.node + '.' + e.to.col); } }
+    seen.delete(start); return seen;
+  }
+
+  function render() {
+    svg.innerHTML = ''; pos = {};
+    const vis = visibleNodes(); const q = document.getElementById('q').value.trim().toLowerCase();
+    document.getElementById('empty').hidden = vis.length > 0; document.getElementById('empty').textContent = 'No models match. Run the lineage step with --annotate and dbt docs generate.';
+    const byDepth = {}; vis.forEach(n => (byDepth[n.depth] ||= []).push(n));
+    const depths = Object.keys(byDepth).map(Number).sort((a, b) => a - b);
+    let maxH = 0;
+    depths.forEach((d, i) => { let y = PAD; byDepth[d].sort((a, b) => a.name.localeCompare(b.name)).forEach(n => {
+      const cols = q ? n.cols.filter(c => c.includes(q) || edges.some(e => (e.from.node === n.key && e.from.col === c && (e.to.col.includes(q) || e.to.node.includes(q))) || (e.to.node === n.key && e.to.col === c && (e.from.col.includes(q) || e.from.node.includes(q))))) : n.cols;
+      const shown = cols.length ? cols : n.cols.slice(0, 1);
+      const x = PAD + i * (W + GAPX), h = HEAD + shown.length * ROW + 8;
+      const g = el('g', {class: 'model', transform: `translate(${x},${y})`});
+      g.appendChild(el('rect', {class: 'box', width: W, height: h}));
+      g.appendChild(el('text', {class: 'title', x: 10, y: 18}, n.name));
+      g.appendChild(el('text', {class: 'sub', x: 10, y: 32}, n.kind === 'source' ? 'source' : (n.layer || 'model') + (n.hasMeta ? ' · lineage ✓' : '')));
+      shown.forEach((c, j) => { const cy = HEAD + j * ROW; const key = n.key + '.' + c; pos[key] = {x, y: y + cy + ROW / 2, w: W};
+        const cg = el('g', {class: 'col', 'data-key': key, transform: `translate(0,${cy})`});
+        cg.appendChild(el('rect', {x: 1, y: 0, width: W - 2, height: ROW}));
+        cg.appendChild(el('rect', {class: 'sens', x: 4, y: 3, width: 6, height: ROW - 6, fill: sensColor((n.colMeta[c] || {}).sensitivity), rx: 1}));
+        cg.appendChild(el('text', {x: 16, y: 13}, c));
+        cg.addEventListener('click', () => select(key)); g.appendChild(cg); });
+      svg.appendChild(g); y += h + GAPY; maxH = Math.max(maxH, y); }); });
+    svg.setAttribute('width', PAD * 2 + depths.length * (W + GAPX)); svg.setAttribute('height', maxH + PAD);
+    const eg = el('g'); svg.insertBefore(eg, svg.firstChild);
+    edges.forEach(e => { const a = pos[e.from.node + '.' + e.from.col], b = pos[e.to.node + '.' + e.to.col]; if (!a || !b) return;
+      const x1 = a.x + a.w, x2 = b.x, mx = (x1 + x2) / 2;
+      eg.appendChild(el('path', {class: 'edge ' + e.kind, d: `M${x1},${a.y} C${mx},${a.y} ${mx},${b.y} ${x2},${b.y}`, 'data-from': e.from.node + '.' + e.from.col, 'data-to': e.to.node + '.' + e.to.col})); });
+    stats.textContent = `${vis.filter(n => n.kind === 'model').length} models · ${vis.filter(n => n.kind === 'source').length} sources · ${edges.filter(e => pos[e.from.node + '.' + e.from.col] && pos[e.to.node + '.' + e.to.col]).length} column edges shown / ${edges.length} total`;
+    applySelection();
+  }
+
+  function select(key) { selected = key; upSet = traverse(key, 'up'); downSet = traverse(key, 'down'); applySelection(); showDetail(key); }
+  function applySelection() {
+    svg.querySelectorAll('.col').forEach(c => { const k = c.dataset.key; c.classList.remove('sel', 'up', 'down', 'dim'); if (!selected) return;
+      if (k === selected) c.classList.add('sel'); else if (upSet.has(k)) c.classList.add('up'); else if (downSet.has(k)) c.classList.add('down'); else c.classList.add('dim'); });
+    svg.querySelectorAll('path.edge').forEach(p => { p.classList.remove('up', 'down', 'dim'); if (!selected) return; const f = p.dataset.from, t = p.dataset.to;
+      if ((upSet.has(f) || f === selected) && (upSet.has(t) || t === selected)) p.classList.add('up');
+      else if ((downSet.has(t) || t === selected) && (downSet.has(f) || f === selected)) p.classList.add('down'); else p.classList.add('dim'); });
+  }
+  function showDetail(key) {
+    const d = document.getElementById('detail'); const [node, col] = [key.slice(0, key.lastIndexOf('.')), key.slice(key.lastIndexOf('.') + 1)];
+    const meta = (nodes[node] && nodes[node].colMeta[col]) || {}; const n = manifest.nodes[Object.keys(manifest.nodes).find(u => manifest.nodes[u].name === node)] || {};
+    const desc = (n.columns && n.columns[col] && n.columns[col].description) || (n.columns && n.columns[col.toUpperCase()] && n.columns[col.toUpperCase()].description) || '';
+    const li = s => `<li data-k="${s}">${s}</li>`;
+    const sources = [...upSet].filter(k => k.startsWith('source:'));
+    d.style.display = 'block';
+    d.innerHTML = `<h3>${key}</h3>${desc ? `<div>${desc}</div>` : ''}<div><span class="k">sensitivity</span> ${meta.sensitivity || 'PUBLIC'}</div>
+      <div class="k">direct upstream (${(meta.lineage || []).length})</div><ul>${(meta.lineage || []).map(li).join('')}</ul>
+      <div class="k">raw source columns reached (${sources.length})</div><ul>${sources.map(li).join('')}</ul>
+      <div class="k">downstream columns (${downSet.size})</div><ul>${[...downSet].slice(0, 40).map(li).join('')}</ul>`;
+    d.querySelectorAll('li').forEach(l => l.addEventListener('click', () => { if (pos[l.dataset.k]) select(l.dataset.k); else { document.getElementById('q').value = l.dataset.k.split('.').pop(); render(); select(l.dataset.k); } }));
+  }
+  ['q', 'tag', 'onlymeta'].forEach(id => document.getElementById(id).addEventListener('input', () => { render(); }));
+  document.getElementById('reset').addEventListener('click', () => { selected = null; document.getElementById('q').value = ''; document.getElementById('detail').style.display = 'none'; render(); });
+  render();
+  const hash = decodeURIComponent(location.hash.slice(1)); if (hash) { document.getElementById('q').value = hash.split('.').pop(); render(); if (pos[hash]) select(hash); }
+})();
+</script>
+</body>
+</html>
