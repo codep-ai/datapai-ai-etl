@@ -20,6 +20,7 @@ from __future__ import annotations
 
 import json
 import logging
+import os
 import re
 from pathlib import Path
 from typing import Any, Dict, List, Optional
@@ -228,6 +229,54 @@ def annotate_yaml(lineage: Dict[str, Any], generated: Dict[str, Dict[str, Any]])
             Path(yml_path).write_text(yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120), encoding="utf-8")
             touched.append(yml_path)
     return touched
+
+
+def write_lineage_table(lineage: Dict[str, Any], pipeline_id: str, run_id: str,
+                        database: Optional[str] = None, schema: Optional[str] = None,
+                        table: str = "DBT_COLUMN_LINEAGE") -> Dict[str, Any]:
+    """
+    Persist column edges + per-column sensitivity as an **Iceberg** table in the warehouse so lineage is
+    queryable in SQL / Lightdash and kept per run (history, diffable). Idempotent per (pipeline_id, run_id).
+    Engine: the pipeline's dbt profile (Snowflake today; same DDL shape as raw_loader bronze tables).
+    """
+    from datetime import datetime, timezone
+    from . import snowflake_conn
+    from .raw_loader import BRONZE_DATABASE, EXTERNAL_VOLUME
+
+    database = database or BRONZE_DATABASE
+    schema = schema or os.getenv("AI_ETL_LINEAGE_SCHEMA", "STOCK_MARTS")
+    fq = f'{database}.{schema}."{table}"'
+    ddl = (
+        f"CREATE ICEBERG TABLE IF NOT EXISTS {fq} (\n"
+        '  "PIPELINE_ID" VARCHAR, "RUN_ID" VARCHAR, "RUN_AT" TIMESTAMP_NTZ(6), "DIALECT" VARCHAR,\n'
+        '  "FROM_NODE" VARCHAR, "FROM_COLUMN" VARCHAR, "TO_NODE" VARCHAR, "TO_COLUMN" VARCHAR,\n'
+        '  "KIND" VARCHAR, "TO_SENSITIVITY" VARCHAR, "DEGRADED" BOOLEAN\n'
+        f")\n EXTERNAL_VOLUME = '{EXTERNAL_VOLUME}'\n CATALOG = 'SNOWFLAKE'\n"
+        f" BASE_LOCATION = 'ai_etl/{schema}/{table.lower()}/'"
+    )
+    run_at = datetime.now(timezone.utc).replace(tzinfo=None)
+    rows = []
+    for e in lineage["edges"]:
+        sens = lineage["columns"].get(e["to_node"], {}).get(e["to_column"], {}).get("sensitivity", "PUBLIC")
+        rows.append((pipeline_id, run_id, run_at, lineage["dialect"], e["from_node"], e["from_column"],
+                     e["to_node"], e["to_column"], e["kind"], sens, bool(e.get("degraded", False))))
+    conn = snowflake_conn.connect()
+    cur = conn.cursor()
+    try:
+        cur.execute(f"CREATE SCHEMA IF NOT EXISTS {database}.{schema}")
+        cur.execute(ddl)
+        cur.execute(f'DELETE FROM {fq} WHERE "PIPELINE_ID" = %s AND "RUN_ID" = %s', (pipeline_id, run_id))
+        if rows:
+            cur.executemany(
+                f'INSERT INTO {fq} ("PIPELINE_ID","RUN_ID","RUN_AT","DIALECT","FROM_NODE","FROM_COLUMN","TO_NODE","TO_COLUMN","KIND","TO_SENSITIVITY","DEGRADED") '
+                f"VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)", rows)
+        conn.commit()
+        cur.execute(f'SELECT COUNT(*) FROM {fq} WHERE "PIPELINE_ID" = %s AND "RUN_ID" = %s', (pipeline_id, run_id))
+        n = cur.fetchone()[0]
+    finally:
+        cur.close(); conn.close()
+    logger.info("lineage table %s: %d edges for %s/%s", fq, n, pipeline_id, run_id)
+    return {"table": fq, "rows": int(n), "pipeline_id": pipeline_id, "run_id": run_id}
 
 
 def to_mermaid(lineage: Dict[str, Any], model: Optional[str] = None, max_edges: int = 400) -> str:

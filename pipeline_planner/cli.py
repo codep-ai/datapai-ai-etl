@@ -192,6 +192,10 @@ def cmd_lineage(args) -> int:
     if args.annotate:
         touched = column_lineage.annotate_yaml(lin, gen)
         print(f"annotated {len(touched)} YAML files with column meta.lineage / meta.sensitivity")
+    if args.to_warehouse:
+        run_id = args.run_id or __import__("datetime").datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        res = column_lineage.write_lineage_table(lin, pipeline_id=f"{req['domain']}_ai_medallion", run_id=run_id)
+        print(f"warehouse: {res['rows']} edges -> {res['table']} (run_id={run_id})")
     print("traced:", lin["summary"])
     return 0
 
@@ -285,6 +289,8 @@ def main(argv=None) -> int:
     sp.add_argument("--catalog", required=True); sp.add_argument("--plan", required=True); sp.add_argument("--state")
     sp.add_argument("--mermaid"); sp.add_argument("--model")
     sp.add_argument("--annotate", action="store_true", help="write meta.lineage/meta.sensitivity into generated YAML")
+    sp.add_argument("--to-warehouse", dest="to_warehouse", action="store_true", help="persist edges to the DBT_COLUMN_LINEAGE Iceberg table")
+    sp.add_argument("--run-id", dest="run_id")
     sp.set_defaults(fn=cmd_lineage)
 
     args = p.parse_args(argv)
