@@ -1,0 +1,331 @@
+{
+  "total_sensitive_columns": 49,
+  "by_level": {
+    "PII_MEDIUM": [
+      "customers.first_name",
+      "customers.last_name",
+      "dim_customer.customer_email",
+      "dim_customer.customer_fax",
+      "dim_customer.customer_first_name",
+      "dim_customer.customer_last_name",
+      "dim_customer.customer_phone",
+      "dim_customer.support_rep_first_name",
+      "dim_customer.support_rep_last_name",
+      "generated_a.email",
+      "generated_a.phone",
+      "generated_b.email",
+      "generated_b.phone",
+      "obt_invoice.customer_email",
+      "obt_invoice.customer_fax",
+      "obt_invoice.customer_first_name",
+      "obt_invoice.customer_last_name",
+      "obt_invoice.customer_phone",
+      "obt_invoice.support_rep_first_name",
+      "obt_invoice.support_rep_last_name",
+      "stg_customer.customer_email",
+      "stg_customer.customer_fax",
+      "stg_customer.customer_first_name",
+      "stg_customer.customer_last_name",
+      "stg_customer.customer_phone",
+      "stg_customers.first_name",
+      "stg_customers.last_name",
+      "stg_employee.employee_birth_date",
+      "stg_employee.employee_email",
+      "stg_employee.employee_fax",
+      "stg_employee.employee_first_name",
+      "stg_employee.employee_last_name",
+      "stg_employee.employee_phone",
+      "users.first_name",
+      "users.last_name"
+    ],
+    "PII_LOW": [
+      "dim_customer.customer_address",
+      "dim_customer.customer_city",
+      "dim_customer.customer_state",
+      "generated_a.address",
+      "generated_b.address",
+      "obt_invoice.customer_address",
+      "obt_invoice.customer_city",
+      "obt_invoice.customer_state",
+      "stg_customer.customer_address",
+      "stg_customer.customer_city",
+      "stg_customer.customer_state",
+      "stg_employee.employee_address",
+      "stg_employee.employee_city",
+      "stg_employee.employee_state"
+    ]
+  },
+  "by_model": {
+    "customers": {
+      "PII_MEDIUM": 2
+    },
+    "dim_customer": {
+      "PII_MEDIUM": 7,
+      "PII_LOW": 3
+    },
+    "generated_a": {
+      "PII_MEDIUM": 2,
+      "PII_LOW": 1
+    },
+    "generated_b": {
+      "PII_MEDIUM": 2,
+      "PII_LOW": 1
+    },
+    "obt_invoice": {
+      "PII_MEDIUM": 7,
+      "PII_LOW": 3
+    },
+    "stg_customer": {
+      "PII_MEDIUM": 5,
+      "PII_LOW": 3
+    },
+    "stg_customers": {
+      "PII_MEDIUM": 2
+    },
+    "stg_employee": {
+      "PII_MEDIUM": 6,
+      "PII_LOW": 3
+    },
+    "users": {
+      "PII_MEDIUM": 2
+    }
+  },
+  "roots": [
+    {
+      "node": "customer",
+      "column": "first_name",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_first_name",
+        "obt_invoice.customer_first_name",
+        "stg_customer.customer_first_name"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "last_name",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_last_name",
+        "obt_invoice.customer_last_name",
+        "stg_customer.customer_last_name"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "phone",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_phone",
+        "obt_invoice.customer_phone",
+        "stg_customer.customer_phone"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "fax",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_fax",
+        "obt_invoice.customer_fax",
+        "stg_customer.customer_fax"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "email",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_email",
+        "obt_invoice.customer_email",
+        "stg_customer.customer_email"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "last_name",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.support_rep_last_name",
+        "obt_invoice.support_rep_last_name",
+        "stg_employee.employee_last_name"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "first_name",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.support_rep_first_name",
+        "obt_invoice.support_rep_first_name",
+        "stg_employee.employee_first_name"
+      ]
+    },
+    {
+      "node": "raw_customers",
+      "column": "first_name",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "customers.first_name",
+        "stg_customers.first_name",
+        "users.first_name"
+      ]
+    },
+    {
+      "node": "raw_customers",
+      "column": "last_name",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 3,
+      "downstream_columns": [
+        "customers.last_name",
+        "stg_customers.last_name",
+        "users.last_name"
+      ]
+    },
+    {
+      "node": "raw_generated",
+      "column": "phone",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 2,
+      "downstream_columns": [
+        "generated_a.phone",
+        "generated_b.phone"
+      ]
+    },
+    {
+      "node": "raw_generated",
+      "column": "email",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 2,
+      "downstream_columns": [
+        "generated_a.email",
+        "generated_b.email"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "birth_date",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_birth_date"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "phone",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_phone"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "fax",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_fax"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "email",
+      "sensitivity": "PII_MEDIUM",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_email"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "address",
+      "sensitivity": "PII_LOW",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_address",
+        "obt_invoice.customer_address",
+        "stg_customer.customer_address"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "city",
+      "sensitivity": "PII_LOW",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_city",
+        "obt_invoice.customer_city",
+        "stg_customer.customer_city"
+      ]
+    },
+    {
+      "node": "customer",
+      "column": "state",
+      "sensitivity": "PII_LOW",
+      "downstream": 3,
+      "downstream_columns": [
+        "dim_customer.customer_state",
+        "obt_invoice.customer_state",
+        "stg_customer.customer_state"
+      ]
+    },
+    {
+      "node": "raw_generated",
+      "column": "address",
+      "sensitivity": "PII_LOW",
+      "downstream": 2,
+      "downstream_columns": [
+        "generated_a.address",
+        "generated_b.address"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "address",
+      "sensitivity": "PII_LOW",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_address"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "city",
+      "sensitivity": "PII_LOW",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_city"
+      ]
+    },
+    {
+      "node": "employee",
+      "column": "state",
+      "sensitivity": "PII_LOW",
+      "downstream": 1,
+      "downstream_columns": [
+        "stg_employee.employee_state"
+      ]
+    }
+  ],
+  "models_with_pii": [
+    "customers",
+    "dim_customer",
+    "generated_a",
+    "generated_b",
+    "obt_invoice",
+    "stg_customer",
+    "stg_customers",
+    "stg_employee",
+    "users"
+  ]
+}

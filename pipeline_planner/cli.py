@@ -222,6 +222,29 @@ def cmd_lineage_project(args) -> int:
     return 0
 
 
+def cmd_pii_report(args) -> int:
+    """PII inventory + enforcement artefacts (dry-run) from a lineage JSON."""
+    from pipeline_planner import pii
+    lin = _load_json(args.lineage)
+    rep = pii.report(lin)
+    out_dir = Path(args.out_dir); out_dir.mkdir(parents=True, exist_ok=True)
+    (out_dir / "pii_report.json").write_text(json.dumps(rep, indent=2), encoding="utf-8")
+    (out_dir / "pii_report.md").write_text(pii.to_markdown(rep, title=f"PII inventory — {args.title}"), encoding="utf-8")
+    (out_dir / "restricted_columns.json").write_text(json.dumps(pii.restricted_list(lin), indent=2), encoding="utf-8")
+    (out_dir / "dbt_pii_patch.json").write_text(json.dumps(pii.dbt_patch(lin), indent=2), encoding="utf-8")
+    if args.project_dir:
+        m = json.loads((Path(args.project_dir) / "target" / "manifest.json").read_text(encoding="utf-8"))
+        rels = {n["name"]: f'{n["database"]}.{n["schema"]}.{n.get("alias") or n["name"]}' for n in m["nodes"].values() if n.get("resource_type") == "model"}
+        ddl = pii.masking_ddl(lin, rels, engine=args.engine)
+        (out_dir / "masking_policies.sql").write_text("-- DRY RUN — review before applying\n" + "\n".join(ddl) + "\n", encoding="utf-8")
+        print(f"masking DDL statements: {len(ddl)}")
+    print(f"sensitive columns: {rep['total_sensitive_columns']} | models: {len(rep['models_with_pii'])} | roots: {len(rep['roots'])}")
+    for r in rep["roots"][:8]:
+        print(f"  root {r['node']}.{r['column']:<22} {r['sensitivity']:<11} -> {r['downstream']} downstream columns")
+    print(f"wrote {out_dir}/pii_report.{{json,md}}, restricted_columns.json, dbt_pii_patch.json")
+    return 0
+
+
 def cmd_run(args) -> int:
     from pipeline_planner import graph as g
 
@@ -323,6 +346,12 @@ def main(argv=None) -> int:
     sp.add_argument("--to-target", dest="to_target", action="store_true", help="write target/lineage.json for the lineage page")
     sp.add_argument("--to-db", dest="to_db", action="store_true"); sp.add_argument("--pipeline-id", dest="pipeline_id", default="dbt_project")
     sp.set_defaults(fn=cmd_lineage_project)
+
+    sp = sub.add_parser("pii-report", help="PII inventory, restricted list, dbt patch and masking DDL (dry-run) from a lineage JSON")
+    sp.add_argument("--lineage", required=True); sp.add_argument("--out-dir", dest="out_dir", default="out/pii")
+    sp.add_argument("--project-dir", dest="project_dir", help="dbt project (for relation names in masking DDL)")
+    sp.add_argument("--engine", default="snowflake"); sp.add_argument("--title", default="dbt project")
+    sp.set_defaults(fn=cmd_pii_report)
 
     args = p.parse_args(argv)
     return args.fn(args)

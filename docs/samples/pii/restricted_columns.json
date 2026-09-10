@@ -1,0 +1,247 @@
+[
+  {
+    "model": "customers",
+    "column": "first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "customers",
+    "column": "last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_address",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_city",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_email",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_fax",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_phone",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "customer_state",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "dim_customer",
+    "column": "support_rep_first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "dim_customer",
+    "column": "support_rep_last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "generated_a",
+    "column": "address",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "generated_a",
+    "column": "email",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "generated_a",
+    "column": "phone",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "generated_b",
+    "column": "address",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "generated_b",
+    "column": "email",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "generated_b",
+    "column": "phone",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_address",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_city",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_email",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_fax",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_phone",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "customer_state",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "support_rep_first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "obt_invoice",
+    "column": "support_rep_last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_address",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_city",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_email",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_fax",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_phone",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customer",
+    "column": "customer_state",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "stg_customers",
+    "column": "first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_customers",
+    "column": "last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_address",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_birth_date",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_city",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_email",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_fax",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_last_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_phone",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "stg_employee",
+    "column": "employee_state",
+    "sensitivity": "PII_LOW"
+  },
+  {
+    "model": "users",
+    "column": "first_name",
+    "sensitivity": "PII_MEDIUM"
+  },
+  {
+    "model": "users",
+    "column": "last_name",
+    "sensitivity": "PII_MEDIUM"
+  }
+]

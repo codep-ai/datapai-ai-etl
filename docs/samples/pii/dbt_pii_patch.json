@@ -1,0 +1,555 @@
+{
+  "customers": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  },
+  "dim_customer": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "customer_address": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "customer_city": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "customer_email": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_fax": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_phone": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_state": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "support_rep_first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "support_rep_last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  },
+  "generated_a": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "address": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "email": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "phone": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  },
+  "generated_b": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "address": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "email": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "phone": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  },
+  "obt_invoice": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "customer_address": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "customer_city": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "customer_email": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_fax": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_phone": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_state": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "support_rep_first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "support_rep_last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  },
+  "stg_customer": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "customer_address": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "customer_city": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "customer_email": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_fax": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_phone": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "customer_state": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      }
+    }
+  },
+  "stg_customers": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  },
+  "stg_employee": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "employee_address": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "employee_birth_date": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "employee_city": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      },
+      "employee_email": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "employee_fax": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "employee_first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "employee_last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "employee_phone": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "employee_state": {
+        "meta": {
+          "sensitivity": "PII_LOW",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_low"
+        ]
+      }
+    }
+  },
+  "users": {
+    "tags": [
+      "pii"
+    ],
+    "columns": {
+      "first_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      },
+      "last_name": {
+        "meta": {
+          "sensitivity": "PII_MEDIUM",
+          "pii": true
+        },
+        "tags": [
+          "pii",
+          "pii_medium"
+        ]
+      }
+    }
+  }
+}

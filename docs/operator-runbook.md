@@ -67,3 +67,15 @@ immediate refresh). Reads `../manifest.json`; needs the `--annotate` lineage ste
 1. Open https://platform.datap.ai/di/dbt (or https://dbt.datap.ai).
 2. Search `fct_daily_price` → open the model → Columns → expand `close_usd` → **meta** shows `lineage` and `sensitivity`.
 3. Search box also matches column names across models. "Lineage Graph" (bottom right) = table-level DAG; filter with `+fct_daily_price+`.
+
+## Column lineage for ANY dbt project (artefacts only) + PII inventory
+```bash
+cd /home/ec2-user/git/datapai-ai-etl; set -a; source ~/.env.dev; set +a; PY=/home/ec2-user/venv_ai_etl/bin/python
+# needs target/manifest.json + target/catalog.json (dbt docs generate) in the project
+$PY -m pipeline_planner.cli lineage-project --project-dir /home/ec2-user/git/dbt-demo --out out/dbtdemo_lineage.json --to-target --to-db --pipeline-id dbt_demo_project
+#   --to-target writes target/lineage.json (the lineage page reads it, no YAML annotation needed); --to-db → sys_ai_column_lineage
+$PY -m pipeline_planner.cli pii-report --lineage out/dbtdemo_lineage.json --project-dir /home/ec2-user/git/dbt-demo --out-dir out/pii --title dbt-demo
+#   → pii_report.md/json (inventory, roots, blast radius), restricted_columns.json (guardrail), dbt_pii_patch.json (tags/meta),
+#     masking_policies.sql (DRY RUN Snowflake masking DDL — review, never auto-applied)
+```
+DB view: `datapai.v_sys_ai_pii_columns` (migration 004) = sensitive columns per pipeline latest run with root columns.
