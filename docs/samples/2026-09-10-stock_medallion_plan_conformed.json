@@ -1,0 +1,583 @@
+{
+  "domain": "stock",
+  "source_name": "src_stock",
+  "target": "snowflake_iceberg",
+  "tag": "stock_ai",
+  "models": [
+    {
+      "name": "stg_prices",
+      "layer": "staging",
+      "description": "Daily OHLCV prices, grain: ticker, exchange, trade_date.",
+      "sources": [
+        "prices"
+      ],
+      "refs": [],
+      "grain": [
+        "ticker",
+        "trade_date",
+        "exchange"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select ticker as ticker_raw, split_part(ticker_raw, '.', 1) as ticker, trade_date::date as trade_date, open, high, low, close, volume, adj_close, exchange from prices",
+      "tests": [
+        {
+          "type": "not_null",
+          "column": "ticker",
+          "columns": null,
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        },
+        {
+          "type": "unique_combination_of_columns",
+          "column": null,
+          "columns": [
+            "ticker",
+            "trade_date",
+            "exchange"
+          ],
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "stg_ticker_universe",
+      "layer": "staging",
+      "description": "Ticker master, grain: yf_symbol, exchange.",
+      "sources": [
+        "ticker_universe"
+      ],
+      "refs": [],
+      "grain": [
+        "yf_symbol",
+        "exchange"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select yf_symbol, ticker as ticker_local, exchange, company_name, sector, is_active, asset_type from ticker_universe",
+      "tests": [
+        {
+          "type": "unique_combination_of_columns",
+          "column": null,
+          "columns": [
+            "yf_symbol",
+            "exchange"
+          ],
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "stg_exchange_ref",
+      "layer": "staging",
+      "description": "Exchange metadata, grain: exchange.",
+      "sources": [
+        "exchange_ref"
+      ],
+      "refs": [],
+      "grain": [
+        "exchange"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select exchange, currency_code, country from exchange_ref",
+      "tests": [
+        {
+          "type": "unique",
+          "column": "exchange",
+          "columns": null,
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "stg_fx_rates",
+      "layer": "staging",
+      "description": "Daily USD FX rates, grain: quote_currency, trade_date.",
+      "sources": [
+        "fx_rates_daily"
+      ],
+      "refs": [],
+      "grain": [
+        "quote_currency",
+        "trade_date"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select base_currency, quote_currency, trade_date::date as trade_date, rate from fx_rates_daily where base_currency = 'USD'",
+      "tests": [
+        {
+          "type": "unique_combination_of_columns",
+          "column": null,
+          "columns": [
+            "quote_currency",
+            "trade_date"
+          ],
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "stg_closed_dates",
+      "layer": "staging",
+      "description": "Market holidays, grain: exchange, closed_date.",
+      "sources": [
+        "stock_market_closed_dates"
+      ],
+      "refs": [],
+      "grain": [
+        "exchange",
+        "closed_date"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select market_code as exchange, closed_date::date as closed_date from stock_market_closed_dates",
+      "tests": [
+        {
+          "type": "not_null",
+          "column": "closed_date",
+          "columns": null,
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "dim_ticker",
+      "layer": "dimension",
+      "description": "Ticker dimension, grain: ticker_key.",
+      "sources": [],
+      "refs": [
+        "stg_ticker_universe"
+      ],
+      "grain": [],
+      "natural_key": [
+        "yf_symbol",
+        "exchange"
+      ],
+      "surrogate_key": "ticker_key",
+      "scd_type": 1,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select dbt_utils.generate_surrogate_key(['yf_symbol', 'exchange']) as ticker_key, * from stg_ticker_universe",
+      "tests": [
+        {
+          "type": "unique",
+          "column": "ticker_key",
+          "columns": null,
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "dim_exchange",
+      "layer": "dimension",
+      "description": "Exchange dimension, grain: exchange_key.",
+      "sources": [],
+      "refs": [
+        "stg_exchange_ref"
+      ],
+      "grain": [],
+      "natural_key": [
+        "exchange"
+      ],
+      "surrogate_key": "exchange_key",
+      "scd_type": 1,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "select dbt_utils.generate_surrogate_key(['exchange']) as exchange_key, * from stg_exchange_ref",
+      "tests": [
+        {
+          "type": "unique",
+          "column": "exchange_key",
+          "columns": null,
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "dim_date",
+      "layer": "dimension",
+      "description": "Trading calendar, grain: date_day, exchange.",
+      "sources": [],
+      "refs": [
+        "stg_prices",
+        "stg_closed_dates"
+      ],
+      "grain": [],
+      "natural_key": [
+        "date_day",
+        "exchange"
+      ],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [],
+      "columns": [],
+      "logic": "generate date spine from min/max stg_prices.trade_date cross joined with distinct exchanges; is_trading_day = (not weekend and not in stg_closed_dates).",
+      "tests": [
+        {
+          "type": "unique_combination_of_columns",
+          "column": null,
+          "columns": [
+            "date_day",
+            "exchange"
+          ],
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "int_price_with_indicators",
+      "layer": "intermediate",
+      "description": "Technical indicators, grain: ticker, exchange, trade_date.",
+      "sources": [],
+      "refs": [
+        "stg_prices",
+        "stg_fx_rates",
+        "stg_exchange_ref"
+      ],
+      "grain": [
+        "ticker",
+        "exchange",
+        "trade_date"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [],
+      "measures": [
+        "sma_5",
+        "rsi_14",
+        "macd_line",
+        "obv_trend"
+      ],
+      "columns": [],
+      "logic": "join stg_prices p join stg_exchange_ref e on p.exchange=e.exchange left join stg_fx_rates fx on e.currency_code=fx.quote_currency and p.trade_date=fx.trade_date; close_usd = p.close / last_value(fx.rate ignore nulls) over (partition by e.currency_code order by p.trade_date); indicators: sma_n = avg(close) over (partition by ticker, exchange order by trade_date rows n-1 preceding); volatility_20d = stddev(ln(close/lag(close))) over (partition by ticker, exchange order by trade_date rows 19 preceding) * sqrt(252) * 100; rsi_14 = 100 - (100 / (1 + (avg(nullif(change,0)) filter (where change>0) / avg(abs(nullif(change,0))) filter (where change<0)))); obv = sum(case when close > lag(close) then volume when close < lag(close) then -volume else 0 end) over (partition by ticker, exchange order by trade_date rows unbounded preceding); obv_trend = case when (obv - lag(obv, 10)) > 0 then 'UP' when (obv - lag(obv, 10)) < 0 then 'DOWN' else 'FLAT' end; pivot_pp = (lag(high)+lag(low)+lag(close))/3.",
+      "tests": [
+        {
+          "type": "unique_combination_of_columns",
+          "column": null,
+          "columns": [
+            "ticker",
+            "exchange",
+            "trade_date"
+          ],
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "fct_daily_price",
+      "layer": "fact",
+      "description": "Daily price fact, grain: ticker, exchange, trade_date.",
+      "sources": [],
+      "refs": [
+        "int_price_with_indicators",
+        "dim_ticker",
+        "dim_exchange"
+      ],
+      "grain": [
+        "ticker",
+        "exchange",
+        "trade_date"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [
+        {
+          "column": "ticker_key",
+          "ref_model": "dim_ticker",
+          "ref_column": "ticker_key"
+        },
+        {
+          "column": "exchange_key",
+          "ref_model": "dim_exchange",
+          "ref_column": "exchange_key"
+        }
+      ],
+      "measures": [
+        "close",
+        "close_usd",
+        "volume"
+      ],
+      "columns": [],
+      "logic": "join int_price_with_indicators i join dim_ticker t on i.ticker=t.yf_symbol and i.exchange=t.exchange join dim_exchange e on i.exchange=e.exchange.",
+      "tests": [
+        {
+          "type": "relationships",
+          "column": "ticker_key",
+          "columns": null,
+          "values": null,
+          "to": "dim_ticker",
+          "field": "ticker_key",
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    },
+    {
+      "name": "fct_screener_metrics",
+      "layer": "fact",
+      "description": "Latest technical snapshot, grain: ticker_key.",
+      "sources": [],
+      "refs": [
+        "int_price_with_indicators",
+        "dim_ticker",
+        "dim_exchange"
+      ],
+      "grain": [
+        "ticker_key"
+      ],
+      "natural_key": [],
+      "surrogate_key": null,
+      "scd_type": null,
+      "foreign_keys": [
+        {
+          "column": "ticker_key",
+          "ref_model": "dim_ticker",
+          "ref_column": "ticker_key"
+        },
+        {
+          "column": "exchange_key",
+          "ref_model": "dim_exchange",
+          "ref_column": "exchange_key"
+        }
+      ],
+      "measures": [],
+      "columns": [
+        "ticker",
+        "exchange",
+        "latest_close",
+        "latest_volume",
+        "trade_date",
+        "change_1d_pct",
+        "change_5d_pct",
+        "change_1m_pct",
+        "change_3m_pct",
+        "change_6m_pct",
+        "change_1y_pct",
+        "high_52w",
+        "low_52w",
+        "pct_from_52w_high",
+        "pct_from_52w_low",
+        "sma_20",
+        "sma_50",
+        "sma_200",
+        "price_vs_sma20_pct",
+        "price_vs_sma50_pct",
+        "price_vs_sma200_pct",
+        "golden_cross",
+        "death_cross",
+        "avg_volume_20d",
+        "volume_ratio",
+        "volatility_20d",
+        "rsi_14",
+        "computed_at",
+        "sma_5",
+        "sma_10",
+        "sma_30",
+        "price_vs_sma5_pct",
+        "price_vs_sma10_pct",
+        "price_vs_sma30_pct",
+        "macd_line",
+        "macd_signal",
+        "macd_histogram",
+        "macd_trend",
+        "kdj_k",
+        "kdj_d",
+        "kdj_j",
+        "kdj_signal",
+        "bb_upper",
+        "bb_middle",
+        "bb_lower",
+        "bb_pct_b",
+        "bb_width",
+        "pivot_pp",
+        "pivot_r1",
+        "pivot_r2",
+        "pivot_s1",
+        "pivot_s2",
+        "obv_trend",
+        "avg_volume_5d",
+        "avg_volume_10d"
+      ],
+      "logic": "qualify row_number() over (partition by ticker, exchange order by trade_date desc) = 1 from int_price_with_indicators; join dim_ticker t on ticker=t.yf_symbol and exchange=t.exchange join dim_exchange e on exchange=e.exchange; golden_cross = sma_50 > sma_200; death_cross = sma_50 < sma_200; macd_trend = case when macd_line > macd_signal then 'BULLISH' else 'BEARISH' end; kdj_signal = case when kdj_j > 80 then 'OVERBOUGHT' when kdj_j < 20 then 'OVERSOLD' else 'NEUTRAL' end.",
+      "tests": [
+        {
+          "type": "unique",
+          "column": "ticker_key",
+          "columns": null,
+          "values": null,
+          "to": null,
+          "field": null,
+          "params": {},
+          "severity": null
+        },
+        {
+          "type": "relationships",
+          "column": "ticker_key",
+          "columns": null,
+          "values": null,
+          "to": "dim_ticker",
+          "field": "ticker_key",
+          "params": {},
+          "severity": null
+        }
+      ],
+      "materialized": "table",
+      "tags": [
+        "stock_ai"
+      ]
+    }
+  ],
+  "build_order": [
+    "stg_closed_dates",
+    "stg_exchange_ref",
+    "stg_fx_rates",
+    "stg_prices",
+    "stg_ticker_universe",
+    "int_price_with_indicators",
+    "dim_date",
+    "dim_exchange",
+    "dim_ticker",
+    "fct_daily_price",
+    "fct_screener_metrics"
+  ],
+  "notes": "int_price_with_indicators now refs staging to avoid circularity. fct_screener_metrics correctly refs dim_ticker with FK. yf_symbol used for 100% join rate.",
+  "planner_meta": {
+    "attempts": [
+      {
+        "attempt": 0,
+        "errors": [
+          "fct_screener_metrics: refs dimension dim_ticker but declares no foreign_keys entry to it",
+          "int_price_with_indicators (intermediate) depends on fct_daily_price (fact): downstream layer referenced upstream"
+        ],
+        "models": 11
+      },
+      {
+        "attempt": 1,
+        "errors": [],
+        "models": 11
+      }
+    ],
+    "few_shot": "chinook_medallion_plan.json",
+    "required_models": [
+      "dim_ticker",
+      "dim_exchange",
+      "dim_date",
+      "fct_daily_price",
+      "int_price_with_indicators",
+      "fct_screener_metrics"
+    ],
+    "catalog_tables": [
+      "prices",
+      "ticker_universe",
+      "exchange_ref",
+      "fx_rates_daily",
+      "stock_market_closed_dates"
+    ],
+    "introspected_at": "2026-09-10T02:22:11.267150+00:00"
+  }
+}

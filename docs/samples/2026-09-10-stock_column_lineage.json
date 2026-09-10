@@ -1,0 +1,2902 @@
+{
+  "dialect": "snowflake",
+  "models": 11,
+  "edges": [
+    {
+      "from_node": "source:stock_market_closed_dates",
+      "from_column": "market_code",
+      "to_node": "stg_closed_dates",
+      "to_column": "exchange",
+      "kind": "derived"
+    },
+    {
+      "from_node": "source:stock_market_closed_dates",
+      "from_column": "closed_date",
+      "to_node": "stg_closed_dates",
+      "to_column": "closed_date",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:exchange_ref",
+      "from_column": "exchange",
+      "to_node": "stg_exchange_ref",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:exchange_ref",
+      "from_column": "currency_code",
+      "to_node": "stg_exchange_ref",
+      "to_column": "currency_code",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:exchange_ref",
+      "from_column": "country",
+      "to_node": "stg_exchange_ref",
+      "to_column": "country",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:fx_rates_daily",
+      "from_column": "trade_date",
+      "to_node": "stg_fx_rates",
+      "to_column": "fx_rate_id",
+      "kind": "derived"
+    },
+    {
+      "from_node": "source:fx_rates_daily",
+      "from_column": "quote_currency",
+      "to_node": "stg_fx_rates",
+      "to_column": "fx_rate_id",
+      "kind": "derived"
+    },
+    {
+      "from_node": "source:fx_rates_daily",
+      "from_column": "base_currency",
+      "to_node": "stg_fx_rates",
+      "to_column": "base_currency",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:fx_rates_daily",
+      "from_column": "quote_currency",
+      "to_node": "stg_fx_rates",
+      "to_column": "quote_currency",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:fx_rates_daily",
+      "from_column": "trade_date",
+      "to_node": "stg_fx_rates",
+      "to_column": "trade_date",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:fx_rates_daily",
+      "from_column": "rate",
+      "to_node": "stg_fx_rates",
+      "to_column": "rate",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "ticker",
+      "to_node": "stg_prices",
+      "to_column": "ticker_raw",
+      "kind": "derived"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "ticker",
+      "to_node": "stg_prices",
+      "to_column": "ticker",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "trade_date",
+      "to_node": "stg_prices",
+      "to_column": "trade_date",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "open",
+      "to_node": "stg_prices",
+      "to_column": "open",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "high",
+      "to_node": "stg_prices",
+      "to_column": "high",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "low",
+      "to_node": "stg_prices",
+      "to_column": "low",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "close",
+      "to_node": "stg_prices",
+      "to_column": "close",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "volume",
+      "to_node": "stg_prices",
+      "to_column": "volume",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "adj_close",
+      "to_node": "stg_prices",
+      "to_column": "adj_close",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:prices",
+      "from_column": "exchange",
+      "to_node": "stg_prices",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "yf_symbol",
+      "to_node": "stg_ticker_universe",
+      "to_column": "yf_symbol",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "ticker",
+      "to_node": "stg_ticker_universe",
+      "to_column": "ticker_local",
+      "kind": "derived"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "exchange",
+      "to_node": "stg_ticker_universe",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "company_name",
+      "to_node": "stg_ticker_universe",
+      "to_column": "company_name",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "sector",
+      "to_node": "stg_ticker_universe",
+      "to_column": "sector",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "is_active",
+      "to_node": "stg_ticker_universe",
+      "to_column": "is_active",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "source:ticker_universe",
+      "from_column": "asset_type",
+      "to_node": "stg_ticker_universe",
+      "to_column": "asset_type",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "ticker",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "trade_date",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_exchange_ref",
+      "from_column": "currency_code",
+      "to_node": "int_price_with_indicators",
+      "to_column": "close_usd",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_fx_rates",
+      "from_column": "rate",
+      "to_node": "int_price_with_indicators",
+      "to_column": "close_usd",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "close_usd",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "close_usd",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "sma_5",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "sma_5",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "sma_5",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "sma_5",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "rsi_14",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "macd_line",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "macd_line",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "macd_line",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "macd_line",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "volume",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "obv_trend",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "volatility_20d",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "high",
+      "to_node": "int_price_with_indicators",
+      "to_column": "pivot_pp",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "ticker",
+      "to_node": "int_price_with_indicators",
+      "to_column": "pivot_pp",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "int_price_with_indicators",
+      "to_column": "pivot_pp",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "close",
+      "to_node": "int_price_with_indicators",
+      "to_column": "pivot_pp",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "low",
+      "to_node": "int_price_with_indicators",
+      "to_column": "pivot_pp",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "int_price_with_indicators",
+      "to_column": "pivot_pp",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "dim_date",
+      "to_column": "date_day",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "exchange",
+      "to_node": "dim_date",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_prices",
+      "from_column": "trade_date",
+      "to_node": "dim_date",
+      "to_column": "is_trading_day",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_closed_dates",
+      "from_column": "closed_date",
+      "to_node": "dim_date",
+      "to_column": "is_trading_day",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_exchange_ref",
+      "from_column": "exchange",
+      "to_node": "dim_exchange",
+      "to_column": "exchange_key",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_exchange_ref",
+      "from_column": "exchange",
+      "to_node": "dim_exchange",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_exchange_ref",
+      "from_column": "currency_code",
+      "to_node": "dim_exchange",
+      "to_column": "currency_code",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_exchange_ref",
+      "from_column": "country",
+      "to_node": "dim_exchange",
+      "to_column": "country",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "exchange",
+      "to_node": "dim_ticker",
+      "to_column": "ticker_key",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "yf_symbol",
+      "to_node": "dim_ticker",
+      "to_column": "ticker_key",
+      "kind": "derived"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "yf_symbol",
+      "to_node": "dim_ticker",
+      "to_column": "yf_symbol",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "ticker_local",
+      "to_node": "dim_ticker",
+      "to_column": "ticker_local",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "exchange",
+      "to_node": "dim_ticker",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "company_name",
+      "to_node": "dim_ticker",
+      "to_column": "company_name",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "sector",
+      "to_node": "dim_ticker",
+      "to_column": "sector",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "is_active",
+      "to_node": "dim_ticker",
+      "to_column": "is_active",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "stg_ticker_universe",
+      "from_column": "asset_type",
+      "to_node": "dim_ticker",
+      "to_column": "asset_type",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "trade_date",
+      "to_node": "fct_daily_price",
+      "to_column": "daily_price_key",
+      "kind": "derived"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "exchange",
+      "to_node": "fct_daily_price",
+      "to_column": "daily_price_key",
+      "kind": "derived"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "ticker",
+      "to_node": "fct_daily_price",
+      "to_column": "daily_price_key",
+      "kind": "derived"
+    },
+    {
+      "from_node": "dim_ticker",
+      "from_column": "ticker_key",
+      "to_node": "fct_daily_price",
+      "to_column": "ticker_key",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "dim_exchange",
+      "from_column": "exchange_key",
+      "to_node": "fct_daily_price",
+      "to_column": "exchange_key",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "ticker",
+      "to_node": "fct_daily_price",
+      "to_column": "ticker",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "exchange",
+      "to_node": "fct_daily_price",
+      "to_column": "exchange",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "trade_date",
+      "to_node": "fct_daily_price",
+      "to_column": "trade_date",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "close_usd",
+      "to_node": "fct_daily_price",
+      "to_column": "close",
+      "kind": "derived"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "close_usd",
+      "to_node": "fct_daily_price",
+      "to_column": "close_usd",
+      "kind": "passthrough"
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "ticker",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "exchange",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "latest_close",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "latest_volume",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "trade_date",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "change_1d_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "change_5d_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "change_1m_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "change_3m_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "change_6m_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "change_1y_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "high_52w",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "low_52w",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pct_from_52w_high",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pct_from_52w_low",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "sma_20",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "sma_50",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "sma_200",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma20_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma20_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma50_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma50_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma200_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma200_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "golden_cross",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "golden_cross",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "death_cross",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "death_cross",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "avg_volume_20d",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "volume_ratio",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "volume_ratio",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "volatility_20d",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "rsi_14",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "sma_5",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "sma_10",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "sma_30",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma5_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma5_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma10_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma10_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma30_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "price_vs_sma30_pct",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "macd_line",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "macd_signal",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "macd_histogram",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "macd_trend",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "macd_trend",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "kdj_k",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "kdj_d",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "kdj_j",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "kdj_signal",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "bb_upper",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "bb_middle",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "bb_lower",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "bb_pct_b",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "bb_width",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pivot_pp",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pivot_r1",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pivot_r2",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pivot_s1",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "pivot_s2",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "obv_trend",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "avg_volume_5d",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "int_price_with_indicators",
+      "from_column": "*",
+      "to_node": "fct_screener_metrics",
+      "to_column": "avg_volume_10d",
+      "kind": "derived",
+      "degraded": true
+    },
+    {
+      "from_node": "dim_ticker",
+      "from_column": "ticker_key",
+      "to_node": "fct_screener_metrics",
+      "to_column": "ticker_key",
+      "kind": "passthrough",
+      "degraded": true
+    },
+    {
+      "from_node": "dim_exchange",
+      "from_column": "exchange_key",
+      "to_node": "fct_screener_metrics",
+      "to_column": "exchange_key",
+      "kind": "passthrough",
+      "degraded": true
+    }
+  ],
+  "columns": {
+    "stg_closed_dates": {
+      "exchange": {
+        "sources": [
+          {
+            "node": "source:stock_market_closed_dates",
+            "column": "market_code"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "closed_date": {
+        "sources": [
+          {
+            "node": "source:stock_market_closed_dates",
+            "column": "closed_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "stg_exchange_ref": {
+      "exchange": {
+        "sources": [
+          {
+            "node": "source:exchange_ref",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "currency_code": {
+        "sources": [
+          {
+            "node": "source:exchange_ref",
+            "column": "currency_code"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "country": {
+        "sources": [
+          {
+            "node": "source:exchange_ref",
+            "column": "country"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "stg_fx_rates": {
+      "fx_rate_id": {
+        "sources": [
+          {
+            "node": "source:fx_rates_daily",
+            "column": "trade_date"
+          },
+          {
+            "node": "source:fx_rates_daily",
+            "column": "quote_currency"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "base_currency": {
+        "sources": [
+          {
+            "node": "source:fx_rates_daily",
+            "column": "base_currency"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "quote_currency": {
+        "sources": [
+          {
+            "node": "source:fx_rates_daily",
+            "column": "quote_currency"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "trade_date": {
+        "sources": [
+          {
+            "node": "source:fx_rates_daily",
+            "column": "trade_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "rate": {
+        "sources": [
+          {
+            "node": "source:fx_rates_daily",
+            "column": "rate"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "stg_prices": {
+      "ticker_raw": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "ticker": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "trade_date": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "trade_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "open": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "open"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "high": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "high"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "low": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "low"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "close": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "close"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "volume": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "volume"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "adj_close": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "adj_close"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "source:prices",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "stg_ticker_universe": {
+      "yf_symbol": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "yf_symbol"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "ticker_local": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "company_name": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "company_name"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sector": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "sector"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "is_active": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "is_active"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "asset_type": {
+        "sources": [
+          {
+            "node": "source:ticker_universe",
+            "column": "asset_type"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "int_price_with_indicators": {
+      "ticker": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "trade_date": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "close_usd": {
+        "sources": [
+          {
+            "node": "stg_exchange_ref",
+            "column": "currency_code"
+          },
+          {
+            "node": "stg_fx_rates",
+            "column": "rate"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_5": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "rsi_14": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "macd_line": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "obv_trend": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "volume"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "volatility_20d": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "close"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pivot_pp": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "high"
+          },
+          {
+            "node": "stg_prices",
+            "column": "ticker"
+          },
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_prices",
+            "column": "close"
+          },
+          {
+            "node": "stg_prices",
+            "column": "low"
+          },
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "dim_date": {
+      "date_day": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "is_trading_day": {
+        "sources": [
+          {
+            "node": "stg_prices",
+            "column": "trade_date"
+          },
+          {
+            "node": "stg_closed_dates",
+            "column": "closed_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "dim_exchange": {
+      "exchange_key": {
+        "sources": [
+          {
+            "node": "stg_exchange_ref",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "stg_exchange_ref",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "currency_code": {
+        "sources": [
+          {
+            "node": "stg_exchange_ref",
+            "column": "currency_code"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "country": {
+        "sources": [
+          {
+            "node": "stg_exchange_ref",
+            "column": "country"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "dim_ticker": {
+      "ticker_key": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "exchange"
+          },
+          {
+            "node": "stg_ticker_universe",
+            "column": "yf_symbol"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "yf_symbol": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "yf_symbol"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "ticker_local": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "ticker_local"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "company_name": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "company_name"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sector": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "sector"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "is_active": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "is_active"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "asset_type": {
+        "sources": [
+          {
+            "node": "stg_ticker_universe",
+            "column": "asset_type"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "fct_daily_price": {
+      "daily_price_key": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "trade_date"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "exchange"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "ticker_key": {
+        "sources": [
+          {
+            "node": "dim_ticker",
+            "column": "ticker_key"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange_key": {
+        "sources": [
+          {
+            "node": "dim_exchange",
+            "column": "exchange_key"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "ticker": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "ticker"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "exchange"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "trade_date": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "trade_date"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "close": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "close_usd"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "close_usd": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "close_usd"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "volume": {
+        "sources": [],
+        "sensitivity": "PUBLIC"
+      }
+    },
+    "fct_screener_metrics": {
+      "ticker": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "latest_close": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "latest_volume": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "trade_date": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "change_1d_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "change_5d_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "change_1m_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "change_3m_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "change_6m_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "change_1y_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "high_52w": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "low_52w": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pct_from_52w_high": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pct_from_52w_low": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_20": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_50": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_200": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "price_vs_sma20_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "price_vs_sma50_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "price_vs_sma200_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "golden_cross": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "death_cross": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "avg_volume_20d": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "volume_ratio": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "volatility_20d": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "rsi_14": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "computed_at": {
+        "sources": [],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_5": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_10": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "sma_30": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "price_vs_sma5_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "price_vs_sma10_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "price_vs_sma30_pct": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "macd_line": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "macd_signal": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "macd_histogram": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "macd_trend": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          },
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "kdj_k": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "kdj_d": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "kdj_j": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "kdj_signal": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "bb_upper": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "bb_middle": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "bb_lower": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "bb_pct_b": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "bb_width": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pivot_pp": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pivot_r1": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pivot_r2": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pivot_s1": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "pivot_s2": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "obv_trend": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "avg_volume_5d": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "avg_volume_10d": {
+        "sources": [
+          {
+            "node": "int_price_with_indicators",
+            "column": "*"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "ticker_key": {
+        "sources": [
+          {
+            "node": "dim_ticker",
+            "column": "ticker_key"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      },
+      "exchange_key": {
+        "sources": [
+          {
+            "node": "dim_exchange",
+            "column": "exchange_key"
+          }
+        ],
+        "sensitivity": "PUBLIC"
+      }
+    }
+  },
+  "unresolved": [],
+  "warnings": [
+    {
+      "model": "fct_screener_metrics",
+      "column": "ticker",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "exchange",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "latest_close",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "latest_volume",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "trade_date",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "change_1d_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "change_5d_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "change_1m_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "change_3m_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "change_6m_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "change_1y_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "high_52w",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "low_52w",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pct_from_52w_high",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pct_from_52w_low",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "sma_20",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "sma_50",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "sma_200",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "price_vs_sma20_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "price_vs_sma50_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "price_vs_sma200_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "golden_cross",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "death_cross",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "avg_volume_20d",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "volume_ratio",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "volatility_20d",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "rsi_14",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "computed_at",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "sma_5",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "sma_10",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "sma_30",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "price_vs_sma5_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "price_vs_sma10_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "price_vs_sma30_pct",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "macd_line",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "macd_signal",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "macd_histogram",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "macd_trend",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "kdj_k",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "kdj_d",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "kdj_j",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "kdj_signal",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "bb_upper",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "bb_middle",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "bb_lower",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "bb_pct_b",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "bb_width",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pivot_pp",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pivot_r1",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pivot_r2",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pivot_s1",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "pivot_s2",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "obv_trend",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "avg_volume_5d",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "avg_volume_10d",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "ticker_key",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    },
+    {
+      "model": "fct_screener_metrics",
+      "column": "exchange_key",
+      "error": "schema-strict: Unknown column: VOLUME",
+      "degraded": true
+    }
+  ],
+  "restricted_columns": [],
+  "summary": {
+    "stg_closed_dates": {
+      "columns": 2,
+      "traced": 2
+    },
+    "stg_exchange_ref": {
+      "columns": 3,
+      "traced": 3
+    },
+    "stg_fx_rates": {
+      "columns": 5,
+      "traced": 5
+    },
+    "stg_prices": {
+      "columns": 10,
+      "traced": 10
+    },
+    "stg_ticker_universe": {
+      "columns": 7,
+      "traced": 7
+    },
+    "int_price_with_indicators": {
+      "columns": 10,
+      "traced": 10
+    },
+    "dim_date": {
+      "columns": 3,
+      "traced": 3
+    },
+    "dim_exchange": {
+      "columns": 4,
+      "traced": 4
+    },
+    "dim_ticker": {
+      "columns": 8,
+      "traced": 8
+    },
+    "fct_daily_price": {
+      "columns": 9,
+      "traced": 8
+    },
+    "fct_screener_metrics": {
+      "columns": 57,
+      "traced": 56
+    }
+  }
+}

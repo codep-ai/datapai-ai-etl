@@ -21,7 +21,7 @@ from typing import Any, Dict, List, Optional, Sequence
 import yaml
 
 from .llm import ChatFn, get_router_chat
-from .models import MedallionPlan, ModelSpec, SourceCatalog, TestSpec
+from .models import MedallionPlan, ModelSpec, SourceCatalog, TestSpec  # noqa: F401
 from .raw_loader import BRONZE_DATABASE, BRONZE_SCHEMA, EXTERNAL_VOLUME, bronze_columns, sf_types_for
 
 logger = logging.getLogger(__name__)
@@ -33,6 +33,7 @@ except Exception:  # pragma: no cover
     from .medallion_planner import _extract_first_json_object  # type: ignore
     generate_source_yaml_text = None  # type: ignore
 
+MAX_CONTRACT_RETRIES = int(os.getenv("AI_ETL_MAX_CONTRACT_RETRIES", "2"))
 LAYER_DIR = {"staging": "staging", "intermediate": "intermediate", "dimension": "marts", "fact": "marts"}
 LAYER_SCHEMA_SUFFIX = {"staging": "STAGING", "intermediate": "INTERMEDIATE", "dimension": "MARTS", "fact": "MARTS"}
 
@@ -86,8 +87,10 @@ Rules:
 - Use only columns that exist upstream; never invent columns. Output columns = the spec's "columns" contract
   when given (same names, same order), otherwise a sensible set including the grain/key columns.
 - Snowflake SQL, lowercase, CTE style (`with ... as (...)`, final `select` last). No semicolon at the end.
-- Iceberg-compatible types only: cast timestamps to TIMESTAMP_NTZ or TIMESTAMP_LTZ (never TIMESTAMP_TZ),
-  no VARIANT/OBJECT/ARRAY output columns.
+- Iceberg-compatible types only: timestamps must be exactly TIMESTAMP_NTZ(6) or TIMESTAMP_LTZ(6) (Iceberg needs
+  microsecond scale; never TIMESTAMP_TZ, never scale 9 or 3), no VARIANT/OBJECT/ARRAY output columns.
+- When a staging spec defines a conformed key (e.g. ticker = split_part(ticker_raw,'.',1)), emit BOTH <col>_raw and
+  the conformed <col>; downstream models join on the conformed column.
 - Surrogate keys: md5(concat_ws('|', coalesce(cast(col1 as varchar),''), ...)). Do NOT use dbt_utils.generate_surrogate_key.
 - Text dates in staging must be cast: try_to_date(col) for 'YYYY-MM-DD' strings.
 - Window functions: always PARTITION BY the spec's entity keys and ORDER BY the date column; use
@@ -97,7 +100,39 @@ Rules:
 - Keep it deterministic; no current_timestamp except where the contract has a computed_at column.
 - Follow the spec's "logic" literally. If the spec is ambiguous, pick the simplest reading and note it in the
   description of the affected column.
+- CONTRACT: every column in the spec's "measures" and "columns" MUST be present and COMPUTED. Never emit
+  `cast(null as ...)` placeholders for a contract column; if an input is missing upstream, compute it from what
+  the upstream exposes (e.g. derive sma_10 from close with a window) — the executor rejects placeholder columns.
+- Facts and intermediates LEFT JOIN their dimensions/lookups. Never INNER JOIN in a way that can drop rows of the
+  grain-defining upstream. Row counts must reconcile with the upstream at the same grain.
+- When fixing a failure, fix the failing expression only. Do NOT drop other columns to make the model compile.
 """.strip()
+
+_NULL_PLACEHOLDER_RE = re.compile(r"cast\s*\(\s*null\s+as\s+[a-z_0-9(),\s]+\)\s+as\s+([a-z_0-9]+)", re.I)
+
+
+def contract_violations(spec: ModelSpec, body_sql: str, columns: List[Dict[str, Any]]) -> List[str]:
+    """
+    Deterministic contract check on the LLM output. Returns problems (empty == OK):
+      * required output columns (spec.columns, or spec.measures + grain) missing from the emitted column list
+      * `cast(null as T) as <contract column>` placeholders
+      * inner `join` to a dimension in a fact (row-dropping risk)
+    """
+    emitted = {c["name"].lower() for c in columns}
+    required = [c.lower() for c in (spec.columns or [])] or [c.lower() for c in (*spec.grain, *spec.measures)]
+    missing = [c for c in required if c not in emitted]
+    problems: List[str] = []
+    if missing:
+        problems.append(f"missing contract columns: {missing}")
+    placeholders = [m.group(1).lower() for m in _NULL_PLACEHOLDER_RE.finditer(body_sql)]
+    bad = [p for p in placeholders if p in set(required)]
+    if bad:
+        problems.append(f"null placeholders for contract columns: {sorted(set(bad))}")
+    if spec.layer in ("fact", "intermediate"):
+        low = body_sql.lower()
+        if re.search(r"(?<!left )(?<!right )(?<!full )(?<!cross )\bjoin\b", low) and re.search(r"\binner\s+join\b|\n\s*join\b", low):
+            problems.append("uses INNER JOIN; facts/intermediates must LEFT JOIN so no grain rows are dropped")
+    return problems
 
 
 def _upstream_context(spec: ModelSpec, plan: MedallionPlan, catalog: SourceCatalog,
@@ -160,32 +195,67 @@ def strip_config(sql: str) -> str:
     return _CONFIG_RE.sub("", sql).strip().rstrip(";").strip() + "\n"
 
 
+def _with_severity(test: Any, t: "TestSpec") -> Any:
+    if not t.severity:
+        return test
+    if isinstance(test, str):
+        return {test: {"config": {"severity": t.severity}}}
+    for k, v in test.items():
+        v.setdefault("config", {})["severity"] = t.severity
+    return test
+
+
+def _expectation(t: "TestSpec") -> Dict[str, Any]:
+    """dbt_expectations test → YAML dict. `values`/`to` are folded into the package's parameter names."""
+    params = dict(t.params)
+    if t.values is not None and "value_set" not in params:
+        params["value_set"] = t.values
+    if t.to and "compare_model" not in params:
+        params["compare_model"] = f"ref('{t.to}')"
+    for k, v in list(params.items()):
+        if isinstance(v, str) and v.startswith("ref('") is False and k in ("compare_model",) and not v.startswith("ref("):
+            params[k] = f"ref('{v}')"
+    return {t.expectation_name(): params}
+
+
 def _dbt_tests_for(spec: ModelSpec, column: str) -> List[Any]:
     out: List[Any] = []
     for t in spec.tests:
         if t.column != column:
             continue
         if t.type in ("not_null", "unique"):
-            out.append(t.type)
+            out.append(_with_severity(t.type, t))
         elif t.type == "accepted_values" and t.values:
-            out.append({"accepted_values": {"values": t.values}})
+            out.append(_with_severity({"accepted_values": {"values": t.values}}, t))
         elif t.type == "relationships" and t.to:
-            out.append({"relationships": {"to": f"ref('{t.to}')", "field": t.field or column}})
+            out.append(_with_severity({"relationships": {"to": f"ref('{t.to}')", "field": t.field or column}}, t))
+        elif t.is_expectation():
+            out.append(_with_severity(_expectation(t), t))
     return out
 
 
-def _model_level_tests(spec: ModelSpec) -> List[Any]:
+def _model_level_tests(spec: ModelSpec, plan: Optional[MedallionPlan] = None) -> List[Any]:
     out: List[Any] = []
+    # Row-count reconciliation: a fact/intermediate at the same grain as an upstream ref must not lose rows
+    # (caught 2026-09-10: fct_daily_price silently dropped every ASX row through an inner join).
+    if plan and spec.layer in ("fact", "intermediate") and spec.grain:
+        for r in spec.refs:
+            up = plan.model(r)
+            if up and up.layer in ("staging", "intermediate") and set(up.grain) == set(spec.grain):
+                out.append({"dbt_utils.equal_rowcount": {"compare_model": f"ref('{r}')"}})
+                break
     for t in spec.tests:
         if t.type == "unique_combination_of_columns" and t.columns:
-            out.append({"dbt_utils.unique_combination_of_columns": {"combination_of_columns": t.columns}})
+            out.append(_with_severity({"dbt_utils.unique_combination_of_columns": {"combination_of_columns": t.columns}}, t))
+        elif t.is_expectation() and not t.column:  # table-level expectations
+            out.append(_with_severity(_expectation(t), t))
     # baseline: composite grain without an explicit combo test
     if len(spec.grain) > 1 and not any(t.type == "unique_combination_of_columns" for t in spec.tests):
         out.append({"dbt_utils.unique_combination_of_columns": {"combination_of_columns": spec.grain}})
     return out
 
 
-def model_yaml(spec: ModelSpec, columns: List[Dict[str, Any]], tag: str) -> str:
+def model_yaml(spec: ModelSpec, columns: List[Dict[str, Any]], tag: str, plan: Optional[MedallionPlan] = None) -> str:
     cols = []
     known = {c["name"] for c in columns}
     for c in columns:
@@ -201,7 +271,7 @@ def model_yaml(spec: ModelSpec, columns: List[Dict[str, Any]], tag: str) -> str:
     desc = spec.description + (f"\n\nNOTE: planned tests reference columns not emitted: {orphan}" if orphan else "")
     doc = {"version": 2, "models": [{"name": spec.name, "description": desc,
                                      "config": {"tags": sorted({tag, spec.layer})},
-                                     **({"tests": _model_level_tests(spec)} if _model_level_tests(spec) else {}),
+                                     **({"tests": _model_level_tests(spec, plan)} if _model_level_tests(spec, plan) else {}),
                                      "columns": cols}]}
     return yaml.safe_dump(doc, sort_keys=False, allow_unicode=True, width=120)
 
@@ -229,21 +299,34 @@ def generate_model(spec: ModelSpec, plan: MedallionPlan, catalog: SourceCatalog,
                    repair: Optional[Dict[str, str]] = None) -> Dict[str, Any]:
     """LLM → files. Returns {"sql_path","yml_path","sql","columns"}."""
     chat = chat or get_router_chat()
-    raw = chat(build_messages(spec, plan, catalog, generated, repair))
-    obj = json.loads(_extract_first_json_object(raw))
-    body = strip_config(str(obj.get("sql") or ""))
-    if not body.strip():
-        raise ValueError(f"{spec.name}: LLM returned empty SQL")
-    columns = [c for c in (obj.get("columns") or []) if isinstance(c, dict) and c.get("name")]
-    for c in columns:
-        c["name"] = str(c["name"]).lower()
+    problems: List[str] = []
+    body, columns = "", []
+    for attempt in range(MAX_CONTRACT_RETRIES + 1):
+        msgs = build_messages(spec, plan, catalog, generated, repair)
+        if problems:
+            msgs.append({"role": "user", "content": "Your previous answer violated the contract. Fix and return the full JSON:\n- " + "\n- ".join(problems)
+                         + (f"\n\nPREVIOUS SQL:\n{body}" if body else "")})
+        raw = chat(msgs)
+        obj = json.loads(_extract_first_json_object(raw))
+        body = strip_config(str(obj.get("sql") or ""))
+        if not body.strip():
+            problems = ["empty SQL"]; continue
+        columns = [c for c in (obj.get("columns") or []) if isinstance(c, dict) and c.get("name")]
+        for c in columns:
+            c["name"] = str(c["name"]).lower()
+        problems = contract_violations(spec, body, columns)
+        if not problems:
+            break
+        logger.warning("%s: contract violation (attempt %d): %s", spec.name, attempt + 1, problems)
+    if problems:
+        raise ValueError(f"{spec.name}: contract still violated after {MAX_CONTRACT_RETRIES + 1} attempts: {problems}")
     sql = target.config_header(spec) + "\n" + body
     d = target.dir_for(spec.layer)
     d.mkdir(parents=True, exist_ok=True)
     sql_path = d / f"{spec.name}.sql"
     yml_path = d / f"_{spec.name}.yml"
     sql_path.write_text(sql, encoding="utf-8")
-    yml_path.write_text(model_yaml(spec, columns, target.tag), encoding="utf-8")
+    yml_path.write_text(model_yaml(spec, columns, target.tag, plan), encoding="utf-8")
     logger.info("generated %s → %s (%d columns)", spec.name, sql_path, len(columns))
     return {"sql_path": str(sql_path), "yml_path": str(yml_path), "sql": sql, "columns": columns}
 

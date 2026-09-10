@@ -47,6 +47,13 @@ class ForeignKeyCandidate(BaseModel):
     ref_columns: List[str]
     source: Literal["constraint", "inferred"]
     confidence: float = 1.0
+    match_rate: Optional[float] = None          # share of sampled child rows found in the parent
+    match_rate_by: Dict[str, float] = Field(default_factory=dict)  # e.g. {"ASX": 0.0, "US": 1.0}
+    alternatives: List[Dict[str, Any]] = Field(default_factory=list)  # [{"ref_columns": [...], "match_rate": 0.99}]
+    # Data-quality conforming rules discovered by testing normalisations of the child key against the parent:
+    # [{"expr": "split_part(ticker, '.', 1)", "match_rate": 1.0, "match_rate_by": {...}}]. The planner must turn the
+    # winner into a staging transformation (keep <col>_raw) so keys are consistent before any join.
+    conform_rules: List[Dict[str, Any]] = Field(default_factory=list)
 
 
 class TableProfile(BaseModel):
@@ -95,7 +102,11 @@ class SourceCatalog(BaseModel):
                 "partitioned": t.is_partitioned,
                 "keys": [{"columns": k.columns, "kind": k.kind, "verified": k.verified} for k in t.keys],
                 "foreign_keys": [
-                    {"columns": f.columns, "ref": f"{f.ref_table}({','.join(f.ref_columns)})", "source": f.source}
+                    {"columns": f.columns, "ref": f"{f.ref_table}({','.join(f.ref_columns)})", "source": f.source,
+                     **({"match_rate": f.match_rate} if f.match_rate is not None else {}),
+                     **({"match_rate_by": f.match_rate_by} if f.match_rate_by else {}),
+                     **({"better_join": f.alternatives} if f.alternatives else {}),
+                     **({"conform_rules": f.conform_rules} if f.conform_rules else {})}
                     for f in t.foreign_keys
                 ],
                 "columns": [
@@ -130,12 +141,28 @@ class SourceCatalog(BaseModel):
 # ═══════════════════════════════════════════════════════════════════════════════
 
 class TestSpec(BaseModel):
-    type: str  # not_null | unique | accepted_values | relationships | unique_combination_of_columns
+    """
+    type: not_null | unique | accepted_values | relationships | unique_combination_of_columns |
+          any dbt_expectations test name (with or without the 'dbt_expectations.' prefix), e.g.
+          expect_column_values_to_be_between {min_value, max_value}, expect_column_values_to_be_in_set {values},
+          expect_column_values_to_not_be_null, expect_column_values_to_match_regex {regex},
+          expect_table_row_count_to_equal_other_table {compare_model}, expect_column_mean_to_be_between ...
+    params: extra keyword arguments passed verbatim to the dbt_expectations test.
+    """
+    type: str
     column: Optional[str] = None
     columns: Optional[List[str]] = None
     values: Optional[List[Any]] = None
     to: Optional[str] = None  # relationships: ref model name
     field: Optional[str] = None
+    params: Dict[str, Any] = Field(default_factory=dict)
+    severity: Optional[Literal["warn", "error"]] = None
+
+    def is_expectation(self) -> bool:
+        return self.type.startswith("dbt_expectations.") or self.type.startswith("expect_")
+
+    def expectation_name(self) -> str:
+        return self.type if self.type.startswith("dbt_expectations.") else f"dbt_expectations.{self.type}"
 
 
 class ForeignKeySpec(BaseModel):

@@ -177,6 +177,25 @@ def cmd_build(args) -> int:
     return 0 if res["ok"] else 1
 
 
+def cmd_lineage(args) -> int:
+    from pipeline_planner import column_lineage
+    req = _merge_request(args)
+    cat = SourceCatalog.model_validate(_load_json(args.catalog))
+    plan = medallion_planner.load_plan(args.plan)
+    plan.validate_graph(cat, req["required_models"])
+    gen = _load_json(args.state) if args.state and Path(args.state).exists() else {}
+    lin = column_lineage.compute_lineage(req["dbt_project_dir"], plan, cat, gen)
+    _write(lin, args.out)
+    print(f"models={lin['models']} edges={len(lin['edges'])} unresolved={len(lin['unresolved'])} restricted={lin['restricted_columns'][:10]}")
+    if args.mermaid:
+        Path(args.mermaid).write_text(column_lineage.to_mermaid(lin, model=args.model), encoding="utf-8"); print(f"wrote {args.mermaid}")
+    if args.annotate:
+        touched = column_lineage.annotate_yaml(lin, gen)
+        print(f"annotated {len(touched)} YAML files with column meta.lineage / meta.sensitivity")
+    print("traced:", lin["summary"])
+    return 0
+
+
 def cmd_run(args) -> int:
     from pipeline_planner import graph as g
 
@@ -261,6 +280,12 @@ def main(argv=None) -> int:
     sp.add_argument("--catalog", required=True); sp.add_argument("--plan", required=True)
     sp.add_argument("--state"); sp.add_argument("--max-attempts", type=int, default=3)
     sp.set_defaults(fn=cmd_build)
+
+    sp = sub.add_parser("lineage"); common(sp)
+    sp.add_argument("--catalog", required=True); sp.add_argument("--plan", required=True); sp.add_argument("--state")
+    sp.add_argument("--mermaid"); sp.add_argument("--model")
+    sp.add_argument("--annotate", action="store_true", help="write meta.lineage/meta.sensitivity into generated YAML")
+    sp.set_defaults(fn=cmd_lineage)
 
     args = p.parse_args(argv)
     return args.fn(args)

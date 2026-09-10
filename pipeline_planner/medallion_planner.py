@@ -87,7 +87,8 @@ Return ONLY one JSON object (no prose, no markdown fences) with this schema:
       "measures": ["..."],                 // facts / intermediate
       "columns": ["..."],                  // output column contract when a target_contract must be matched
       "logic": "precise plain-English transform spec a SQL generator can implement without guessing: joins (keys), filters, window functions with exact windows/ordering, formulas",
-      "tests": [{"type": "not_null|unique|accepted_values|relationships|unique_combination_of_columns", "column": "...", "columns": [...], "values": [...], "to": "...", "field": "..."}]
+      "tests": [{"type": "not_null|unique|accepted_values|relationships|unique_combination_of_columns|<dbt_expectations test>",
+                 "column": "...", "columns": [...], "values": [...], "to": "...", "field": "...", "params": {...}, "severity": "warn|error"}]
     }
   ],
   "notes": "assumptions and open questions"
@@ -108,8 +109,25 @@ Rules:
   in order and "logic" MUST define how each is computed. Windows must be exact (e.g. "SMA over the trailing
   20 trading days per (ticker, exchange) ordered by trade_date").
 - Use only tables and columns that exist in the catalog. Never invent columns.
+- DATA QUALITY / KEY CONFORMANCE: foreign keys carry a measured "match_rate", a per-group breakdown
+  ("match_rate_by"), "better_join" alternative parent columns and "conform_rules" (normalisation expressions that
+  were TESTED against the data, with their match rate). When a conform rule exists you MUST:
+    (a) apply it in the STAGING model of the child table: keep the raw value as <col>_raw and expose the conformed
+        value under the original column name (e.g. ticker_raw = 'BHP.AX', ticker = split_part(ticker_raw,'.',1));
+        state the exact expression in "logic";
+    (b) join downstream on the conformed key only;
+    (c) add a relationships test from the consuming fact to the dimension so the conformance is verified on every run.
+  If several rules/alternatives exist, choose the highest match_rate; if none reaches ~100%, say so in notes and
+  LEFT JOIN so no rows are lost.
 - Propagate PII sensitivity: if a source column is not PUBLIC, mention masking/hashing in the consuming model's logic.
 - Baseline tests: not_null + unique (or unique_combination_of_columns) on every grain/key.
+- DATA QUALITY (dbt_expectations is installed): add value-range and set tests derived from the catalog profile and
+  domain knowledge, e.g. {"type":"expect_column_values_to_be_between","column":"rsi_14","params":{"min_value":0,"max_value":100}},
+  {"type":"expect_column_values_to_be_between","column":"close","params":{"min_value":0,"strictly":true}},
+  {"type":"expect_column_values_to_be_in_set","column":"exchange","values":[...from catalog samples...]},
+  {"type":"expect_table_row_count_to_equal_other_table","to":"<upstream model at same grain>"} on facts/intermediates,
+  {"type":"expect_column_values_to_not_be_null","column":"<measure>","severity":"warn"} for measures that may be null
+  during warm-up windows. Use severity "warn" for statistical expectations, "error" for structural ones.
 - Names: snake_case; prefixes stg_/int_/dim_/fct_ exactly.
 - Output budget: return MINIFIED JSON (no indentation, no line breaks) and keep "description"/"logic"
   dense. Put the detail into "logic" of the required models; staging models need one short sentence.

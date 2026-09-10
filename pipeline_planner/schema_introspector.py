@@ -193,6 +193,103 @@ def infer_foreign_keys(tables: List[TableProfile]) -> None:
                     declared.add((tuple(k.columns), b.name))
 
 
+def _q(c: str) -> str:
+    return '"' + c + '"'
+
+
+# Candidate normalisations of a child key, tried against the parent key when the raw join is weak.
+# `{col}` is substituted; expressions are ANSI/Postgres and portable to Snowflake.
+CONFORM_CANDIDATES = [
+    ("strip_suffix_after_dot", "split_part({col}, '.', 1)"),
+    ("strip_suffix_after_colon", "split_part({col}, ':', 1)"),
+    ("upper_trim", "upper(trim({col}))"),
+    ("strip_leading_zeros", "ltrim({col}, '0')"),
+    ("digits_only", "regexp_replace({col}, '[^0-9]', '', 'g')"),
+    ("strip_exchange_suffix", "regexp_replace({col}, '\\.[A-Za-z]{{1,3}}$', '')"),
+]
+
+
+def verify_foreign_keys(conn, schema: str, tables: List[TableProfile], sample_rows: int = 50_000) -> None:
+    """
+    Measure how many sampled child rows actually find a parent (match_rate), broken down
+    by the child's low-cardinality partition-like column when there is one (e.g. exchange).
+    For weak matches, try the child key against every other text column of the parent and
+    report the best alternative(s) — this is how `prices.ticker='BHP.AX'` vs
+    `ticker_universe.ticker='BHP'` / `yf_symbol='BHP.AX'` becomes visible to the planner.
+    """
+    by_name = {t.name: t for t in tables}
+    cur = conn.cursor()
+    for child in tables:
+        # Group column = the FK column with the FEWEST distinct values (≤ 100), e.g. exchange — never ticker.
+        fk_cols = {k for fk in child.foreign_keys for k in fk.columns}
+        cands = [c for c in child.columns if c.name in fk_cols and c.distinct_count is not None and c.distinct_count <= 100]
+        group_col = min(cands, key=lambda c: c.distinct_count).name if cands else None
+        # A plain LIMIT on a LIST-partitioned table reads one partition only (all-ASX sample, 2026-09-10) →
+        # use TABLESAMPLE so every partition contributes.
+        if child.row_count > sample_rows * 4:
+            pct = max(min(sample_rows / child.row_count * 100 * 4, 100.0), 0.05)  # over-sample; LIMIT trims
+            child_src = f'(SELECT * FROM {_q(schema)}.{_q(child.name)} TABLESAMPLE SYSTEM ({pct:.4f}) LIMIT {int(sample_rows)}) c'
+        else:
+            child_src = f'(SELECT * FROM {_q(schema)}.{_q(child.name)} LIMIT {int(sample_rows)}) c'
+        for fk in child.foreign_keys:
+            parent = by_name.get(fk.ref_table)
+            if not parent:
+                continue
+            on = " AND ".join(f"c.{_q(a)} = p.{_q(b)}" for a, b in zip(fk.columns, fk.ref_columns))
+            parent_src = f'{_q(schema)}.{_q(parent.name)} p'
+            try:
+                cur.execute(f"SELECT COUNT(*), COUNT(p.{_q(fk.ref_columns[0])}) FROM {child_src} LEFT JOIN {parent_src} ON {on}")
+                total, hit = cur.fetchone()
+                fk.match_rate = round(hit / total, 4) if total else None
+                if group_col:
+                    cur.execute(f"SELECT c.{_q(group_col)}, COUNT(*), COUNT(p.{_q(fk.ref_columns[0])}) FROM {child_src} "
+                                f"LEFT JOIN {parent_src} ON {on} GROUP BY 1 ORDER BY 2 DESC LIMIT 30")
+                    fk.match_rate_by = {str(g): round(h / n, 4) for g, n, h in cur.fetchall() if n}
+                if fk.match_rate is not None and fk.match_rate < 0.95 and len(fk.columns) >= 1:
+                    # try the first (identifying) child column against other text columns of the parent
+                    weak_child = fk.columns[0]
+                    others = [c.name for c in parent.columns if c.data_type.startswith(("text", "char")) and c.name not in fk.ref_columns]
+                    rest = [(a, b) for a, b in zip(fk.columns, fk.ref_columns) if a != weak_child]
+                    for alt in others:
+                        alt_on = " AND ".join([f"c.{_q(weak_child)} = p.{_q(alt)}"] + [f"c.{_q(a)} = p.{_q(b)}" for a, b in rest])
+                        cur.execute(f"SELECT COUNT(*), COUNT(p.{_q(alt)}) FROM {child_src} LEFT JOIN {parent_src} ON {alt_on}")
+                        n, h = cur.fetchone()
+                        rate = round(h / n, 4) if n else 0.0
+                        if rate > (fk.match_rate or 0):
+                            fk.alternatives.append({"ref_columns": [alt] + [b for _, b in rest], "match_rate": rate})
+                    fk.alternatives.sort(key=lambda a: -a["match_rate"])
+                    fk.alternatives = fk.alternatives[:2]
+                    # Conforming-rule discovery: which normalisation of the child key makes it match the parent key?
+                    # (BHP.AX vs BHP, 2026-09-10 — previously a human wrote this rule by hand.)
+                    parent_key = fk.ref_columns[0]
+                    for label, expr in CONFORM_CANDIDATES:
+                        e = expr.format(col=f"c.{_q(weak_child)}")
+                        c_on = " AND ".join([f"{e} = p.{_q(parent_key)}"] + [f"c.{_q(a)} = p.{_q(b)}" for a, b in rest])
+                        try:
+                            if group_col:
+                                cur.execute(f"SELECT c.{_q(group_col)}, COUNT(*), COUNT(p.{_q(parent_key)}) FROM {child_src} "
+                                            f"LEFT JOIN {parent_src} ON {c_on} GROUP BY 1")
+                                rows = cur.fetchall()
+                                n = sum(r[1] for r in rows); h = sum(r[2] for r in rows)
+                                by = {str(g): round(hh / nn, 4) for g, nn, hh in rows if nn}
+                            else:
+                                cur.execute(f"SELECT COUNT(*), COUNT(p.{_q(parent_key)}) FROM {child_src} LEFT JOIN {parent_src} ON {c_on}")
+                                n, h = cur.fetchone(); by = {}
+                            rate = round(h / n, 4) if n else 0.0
+                            if rate > (fk.match_rate or 0):
+                                fk.conform_rules.append({"expr": expr.format(col=weak_child), "label": label,
+                                                         "match_rate": rate, "match_rate_by": by})
+                        except Exception as exc:
+                            conn.rollback()
+                            logger.debug("conform candidate %s failed: %s", label, exc)
+                    fk.conform_rules.sort(key=lambda r: -r["match_rate"])
+                    fk.conform_rules = fk.conform_rules[:2]
+            except Exception as exc:
+                conn.rollback()
+                logger.warning("fk verify skipped %s%s→%s: %s", child.name, fk.columns, fk.ref_table, exc)
+    cur.close()
+
+
 # ═══════════════════════════════════════════════════════════════════════════════
 # Public API
 # ═══════════════════════════════════════════════════════════════════════════════
@@ -256,6 +353,7 @@ def introspect(
                     c.pii_type, c.sensitivity = classify_column(c.name, [], c.data_type)
 
     if verify_keys:
+        verify_foreign_keys(conn, schema, profiles)
         for tp in profiles:
             for k in tp.keys:
                 try:
@@ -285,5 +383,12 @@ def introspect(
             notes.append(f"{tp.name} is LIST-partitioned by exchange into {len(tp.partitions)} partitions")
         if not tp.keys:
             notes.append(f"{tp.name} has no declared unique key")
+        for fk in tp.foreign_keys:
+            if fk.match_rate is not None and fk.match_rate < 0.95:
+                hint = f"; better join: {fk.alternatives[0]['ref_columns']} matches {fk.alternatives[0]['match_rate']:.0%}" if fk.alternatives else ""
+                if fk.conform_rules:
+                    hint += f"; CONFORM RULE: {fk.conform_rules[0]['expr']} matches {fk.conform_rules[0]['match_rate']:.0%}"
+                notes.append(f"{tp.name}({','.join(fk.columns)}) -> {fk.ref_table}({','.join(fk.ref_columns)}) matches only "
+                             f"{fk.match_rate:.0%} of rows" + (f" (by group: {fk.match_rate_by})" if fk.match_rate_by else "") + hint)
     return SourceCatalog(source_system="postgres", database=database, schema_name=schema,
                          domain=domain, tables=profiles, target_contracts=contracts, notes=notes)

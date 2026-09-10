@@ -1,0 +1,11 @@
+graph LR
+  int_price_with_indicators__trade_date["int_price_with_indicators.trade_date"] --> fct_daily_price__daily_price_key["fct_daily_price.daily_price_key"]
+  int_price_with_indicators__exchange["int_price_with_indicators.exchange"] --> fct_daily_price__daily_price_key["fct_daily_price.daily_price_key"]
+  int_price_with_indicators__ticker["int_price_with_indicators.ticker"] --> fct_daily_price__daily_price_key["fct_daily_price.daily_price_key"]
+  dim_ticker__ticker_key["dim_ticker.ticker_key"] --> fct_daily_price__ticker_key["fct_daily_price.ticker_key"]
+  dim_exchange__exchange_key["dim_exchange.exchange_key"] --> fct_daily_price__exchange_key["fct_daily_price.exchange_key"]
+  int_price_with_indicators__ticker["int_price_with_indicators.ticker"] --> fct_daily_price__ticker["fct_daily_price.ticker"]
+  int_price_with_indicators__exchange["int_price_with_indicators.exchange"] --> fct_daily_price__exchange["fct_daily_price.exchange"]
+  int_price_with_indicators__trade_date["int_price_with_indicators.trade_date"] --> fct_daily_price__trade_date["fct_daily_price.trade_date"]
+  int_price_with_indicators__close_usd["int_price_with_indicators.close_usd"] --> fct_daily_price__close["fct_daily_price.close"]
+  int_price_with_indicators__close_usd["int_price_with_indicators.close_usd"] --> fct_daily_price__close_usd["fct_daily_price.close_usd"]

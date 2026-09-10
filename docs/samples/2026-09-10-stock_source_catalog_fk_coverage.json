@@ -1,0 +1,1444 @@
+{
+  "source_system": "postgres",
+  "database": "postgres",
+  "schema_name": "datapai",
+  "domain": "stock",
+  "introspected_at": "2026-09-10T02:22:11.267150+00:00",
+  "tables": [
+    {
+      "schema_name": "datapai",
+      "name": "prices",
+      "row_count": 29994841,
+      "row_count_method": "partition_stats",
+      "is_partitioned": true,
+      "partitions": [
+        "prices_asx",
+        "prices_hkex",
+        "prices_hose",
+        "prices_idx",
+        "prices_index",
+        "prices_klse",
+        "prices_lse",
+        "prices_other",
+        "prices_set",
+        "prices_sgx",
+        "prices_sse",
+        "prices_szse",
+        "prices_tse",
+        "prices_twse",
+        "prices_us"
+      ],
+      "columns": [
+        {
+          "name": "ticker",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 199,
+          "low_cardinality": true,
+          "sample_values": [
+            "RIM.AX",
+            "SKM.AX",
+            "RIL.AX"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "trade_date",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 1254,
+          "low_cardinality": true,
+          "sample_values": [
+            "2021-04-09",
+            "2025-03-11",
+            "2024-09-23",
+            "2021-10-15",
+            "2024-05-31"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "close",
+          "data_type": "numeric",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 34039,
+          "low_cardinality": false,
+          "sample_values": [
+            "92.2040023803711",
+            "106.881553649902",
+            "89.950439453125",
+            "127.864845275879",
+            "109.515342712402"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "volume",
+          "data_type": "bigint",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 147127,
+          "low_cardinality": false,
+          "sample_values": [
+            "138737",
+            "955779",
+            "23275",
+            "67712",
+            "6328557"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "open",
+          "data_type": "numeric",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 56995,
+          "low_cardinality": false,
+          "sample_values": [
+            "0.0240000002086163",
+            "0.532342584237207",
+            "0.443176033146292",
+            "0.513985945235887",
+            "0.523164321757807"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "high",
+          "data_type": "numeric",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 54839,
+          "low_cardinality": false,
+          "sample_values": [
+            "0.0240000002086163",
+            "0.0111400000751019",
+            "0.0295460000634193",
+            "0.0319680012762547",
+            "0.0222810003906488"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "low",
+          "data_type": "numeric",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 54543,
+          "low_cardinality": false,
+          "sample_values": [
+            "0.046000000089407",
+            "0.00499999988824129",
+            "0.0625",
+            "0.0649999976158142",
+            "0.0219999998807907"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "adj_close",
+          "data_type": "numeric",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 34039,
+          "low_cardinality": false,
+          "sample_values": [
+            "0.046000000089407",
+            "0.00499999988824129",
+            "0.0649999976158142",
+            "1.26621747016907",
+            "0.0240000002086163"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "exchange",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 1,
+          "low_cardinality": true,
+          "sample_values": [
+            "ASX"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "source",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 1,
+          "low_cardinality": true,
+          "sample_values": [
+            "yahoo"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        }
+      ],
+      "keys": [
+        {
+          "columns": [
+            "ticker",
+            "trade_date",
+            "exchange"
+          ],
+          "kind": "unique_index",
+          "verified": true
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "ticker",
+            "exchange"
+          ],
+          "ref_table": "ticker_universe",
+          "ref_columns": [
+            "ticker",
+            "exchange"
+          ],
+          "source": "inferred",
+          "confidence": 0.9,
+          "match_rate": 0.0026,
+          "match_rate_by": {
+            "HKEX": 0.0,
+            "ASX": 0.0,
+            "KLSE": 0.0,
+            "IDX": 0.0,
+            "HOSE": 0.0,
+            "INDEX": 1.0
+          },
+          "alternatives": [
+            {
+              "ref_columns": [
+                "yf_symbol",
+                "exchange"
+              ],
+              "match_rate": 1.0
+            }
+          ],
+          "conform_rules": [
+            {
+              "expr": "split_part(ticker, '.', 1)",
+              "label": "strip_suffix_after_dot",
+              "match_rate": 1.0,
+              "match_rate_by": {
+                "HKEX": 1.0,
+                "INDEX": 1.0,
+                "ASX": 1.0,
+                "HOSE": 1.0,
+                "KLSE": 1.0,
+                "IDX": 1.0
+              }
+            },
+            {
+              "expr": "regexp_replace(ticker, '\\.[A-Za-z]{1,3}$', '')",
+              "label": "strip_exchange_suffix",
+              "match_rate": 1.0,
+              "match_rate_by": {
+                "HKEX": 1.0,
+                "INDEX": 1.0,
+                "ASX": 1.0,
+                "HOSE": 1.0,
+                "KLSE": 1.0,
+                "IDX": 1.0
+              }
+            }
+          ]
+        },
+        {
+          "columns": [
+            "exchange"
+          ],
+          "ref_table": "exchange_ref",
+          "ref_columns": [
+            "exchange"
+          ],
+          "source": "inferred",
+          "confidence": 0.7,
+          "match_rate": 1.0,
+          "match_rate_by": {
+            "HKEX": 1.0,
+            "ASX": 1.0,
+            "IDX": 1.0,
+            "HOSE": 1.0
+          },
+          "alternatives": [],
+          "conform_rules": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "schema_name": "datapai",
+      "name": "ticker_universe",
+      "row_count": 28465,
+      "row_count_method": "exact",
+      "is_partitioned": false,
+      "partitions": [],
+      "columns": [
+        {
+          "name": "ticker",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 23781,
+          "low_cardinality": false,
+          "sample_values": [
+            "DXS",
+            "SVY",
+            "KLS",
+            "JDO",
+            "M3M"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "exchange",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 14,
+          "low_cardinality": true,
+          "sample_values": [
+            "ASX",
+            "LSE",
+            "TWSE",
+            "US",
+            "HOSE"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "yf_symbol",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 28465,
+          "low_cardinality": false,
+          "sample_values": [
+            "WAM.AX",
+            "RG1.AX",
+            "WA1.AX",
+            "STH.AX",
+            "BFG.AX"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "company_name",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": 56.9,
+          "distinct_count": 12157,
+          "low_cardinality": false,
+          "sample_values": [
+            "\u4e1c\u8d1d\u96c6\u56e2",
+            "3i Group plc",
+            "AJ Bell Plc",
+            "Chubb Limited",
+            "\u7ef4\u529b\u533b\u7597"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sector",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": 100.0,
+          "distinct_count": 0,
+          "low_cardinality": true,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "is_active",
+          "data_type": "boolean",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 2,
+          "low_cardinality": true,
+          "sample_values": [
+            "true"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "source",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 6,
+          "low_cardinality": true,
+          "sample_values": [
+            "stockanalysis",
+            "asx_csv",
+            "from_prices",
+            "manual"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "added_at",
+          "data_type": "timestamp with time zone",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 87,
+          "low_cardinality": true,
+          "sample_values": [
+            "2026-03-21 05:42:52.144855+00",
+            "2026-03-24 02:38:11.69923+00",
+            "2026-03-21 05:42:52.09545+00",
+            "2026-03-31 06:31:21.81688+00",
+            "2026-03-28 10:15:03.481716+00"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "updated_at",
+          "data_type": "timestamp with time zone",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 87,
+          "low_cardinality": true,
+          "sample_values": [
+            "2026-03-21 05:42:52.144855+00",
+            "2026-03-24 02:38:11.69923+00",
+            "2026-03-21 05:42:52.09545+00",
+            "2026-03-31 06:31:21.81688+00",
+            "2026-03-28 10:15:03.481716+00"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "asset_type",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 2,
+          "low_cardinality": true,
+          "sample_values": [
+            "STOCK"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "region",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": 99.9,
+          "distinct_count": 4,
+          "low_cardinality": true,
+          "sample_values": [
+            "ASIA",
+            "ASX",
+            "EU",
+            "US"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "is_featured",
+          "data_type": "boolean",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 2,
+          "low_cardinality": true,
+          "sample_values": [
+            "true",
+            "false"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "featured_order",
+          "data_type": "integer",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 22,
+          "low_cardinality": true,
+          "sample_values": [
+            "9999"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        }
+      ],
+      "keys": [
+        {
+          "columns": [
+            "ticker",
+            "exchange"
+          ],
+          "kind": "primary_key",
+          "verified": true
+        }
+      ],
+      "foreign_keys": [
+        {
+          "columns": [
+            "exchange"
+          ],
+          "ref_table": "exchange_ref",
+          "ref_columns": [
+            "exchange"
+          ],
+          "source": "inferred",
+          "confidence": 0.7,
+          "match_rate": 0.7656,
+          "match_rate_by": {
+            "US": 1.0,
+            "TSE": 0.0,
+            "HKEX": 1.0,
+            "TWSE": 0.0,
+            "LSE": 1.0,
+            "SSE": 1.0,
+            "ASX": 1.0,
+            "SZSE": 1.0,
+            "KLSE": 1.0,
+            "HOSE": 1.0,
+            "SGX": 0.0,
+            "IDX": 1.0,
+            "SET": 1.0,
+            "INDEX": 0.0
+          },
+          "alternatives": [],
+          "conform_rules": []
+        }
+      ],
+      "description": ""
+    },
+    {
+      "schema_name": "datapai",
+      "name": "exchange_ref",
+      "row_count": 10,
+      "row_count_method": "exact",
+      "is_partitioned": false,
+      "partitions": [],
+      "columns": [
+        {
+          "name": "exchange",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 10,
+          "low_cardinality": false,
+          "sample_values": [
+            "KLSE",
+            "ASX",
+            "SSE",
+            "SET",
+            "LSE"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "currency_code",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 9,
+          "low_cardinality": false,
+          "sample_values": [
+            "THB",
+            "HKD",
+            "IDR",
+            "VND",
+            "MYR"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "currency_symbol",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 9,
+          "low_cardinality": false,
+          "sample_values": [
+            "\u0e3f",
+            "RM",
+            "Rp",
+            "HK$",
+            "A$"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "currency_name_en",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 9,
+          "low_cardinality": false,
+          "sample_values": [
+            "US Dollar",
+            "Pence Sterling",
+            "Chinese Yuan",
+            "Malaysian Ringgit",
+            "Hong Kong Dollar"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "country",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 9,
+          "low_cardinality": false,
+          "sample_values": [
+            "United States",
+            "United Kingdom",
+            "Vietnam",
+            "Indonesia",
+            "Malaysia"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        }
+      ],
+      "keys": [
+        {
+          "columns": [
+            "exchange"
+          ],
+          "kind": "primary_key",
+          "verified": true
+        }
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "schema_name": "datapai",
+      "name": "fx_rates_daily",
+      "row_count": 5150,
+      "row_count_method": "exact",
+      "is_partitioned": false,
+      "partitions": [],
+      "columns": [
+        {
+          "name": "base_currency",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 1,
+          "low_cardinality": true,
+          "sample_values": [
+            "USD"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "quote_currency",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 13,
+          "low_cardinality": true,
+          "sample_values": [
+            "GBP",
+            "THB",
+            "HKD",
+            "IDR",
+            "VND"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "rate",
+          "data_type": "numeric",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 4010,
+          "low_cardinality": false,
+          "sample_values": [
+            "7.79413",
+            "25550.0",
+            "16229.0",
+            "1.540191",
+            "1.55118"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "trade_date",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 416,
+          "low_cardinality": false,
+          "sample_values": [
+            "2025-11-04",
+            "2025-11-18",
+            "2025-06-03",
+            "2026-03-06",
+            "2025-11-07"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "source",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 2,
+          "low_cardinality": true,
+          "sample_values": [
+            "static",
+            "yahoo"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        }
+      ],
+      "keys": [
+        {
+          "columns": [
+            "base_currency",
+            "quote_currency",
+            "trade_date"
+          ],
+          "kind": "primary_key",
+          "verified": true
+        }
+      ],
+      "foreign_keys": [],
+      "description": ""
+    },
+    {
+      "schema_name": "datapai",
+      "name": "stock_market_closed_dates",
+      "row_count": 636,
+      "row_count_method": "exact",
+      "is_partitioned": false,
+      "partitions": [],
+      "columns": [
+        {
+          "name": "market_code",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 13,
+          "low_cardinality": false,
+          "sample_values": [
+            "IDX",
+            "KLSE",
+            "ASX",
+            "SSE",
+            "SET"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "closed_date",
+          "data_type": "date",
+          "nullable": false,
+          "null_pct": 0.0,
+          "distinct_count": 296,
+          "low_cardinality": false,
+          "sample_values": [
+            "2029-02-13",
+            "2028-12-26",
+            "2028-06-19",
+            "2030-04-20",
+            "2028-04-13"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "reason",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": 0.0,
+          "distinct_count": 53,
+          "low_cardinality": false,
+          "sample_values": [
+            "Boxing Day",
+            "Constitution Day",
+            "Memorial Day",
+            "Peace Memorial Day",
+            "Juneteenth"
+          ],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        }
+      ],
+      "keys": [
+        {
+          "columns": [
+            "market_code",
+            "closed_date"
+          ],
+          "kind": "primary_key",
+          "verified": true
+        }
+      ],
+      "foreign_keys": [],
+      "description": ""
+    }
+  ],
+  "target_contracts": [
+    {
+      "schema_name": "datapai",
+      "name": "screener_metrics",
+      "row_count": 0,
+      "row_count_method": "exact",
+      "is_partitioned": false,
+      "partitions": [],
+      "columns": [
+        {
+          "name": "ticker",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "exchange",
+          "data_type": "text",
+          "nullable": false,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "latest_close",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "latest_volume",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "trade_date",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "change_1d_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "change_5d_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "change_1m_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "change_3m_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "change_6m_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "change_1y_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "high_52w",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "low_52w",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pct_from_52w_high",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pct_from_52w_low",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sma_20",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sma_50",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sma_200",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "price_vs_sma20_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "price_vs_sma50_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "price_vs_sma200_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "golden_cross",
+          "data_type": "boolean",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "death_cross",
+          "data_type": "boolean",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "avg_volume_20d",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "volume_ratio",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "volatility_20d",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "rsi_14",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "computed_at",
+          "data_type": "timestamp with time zone",
+          "nullable": false,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sma_5",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sma_10",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "sma_30",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "price_vs_sma5_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "price_vs_sma10_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "price_vs_sma30_pct",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "macd_line",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "macd_signal",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "macd_histogram",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "macd_trend",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "kdj_k",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "kdj_d",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "kdj_j",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "kdj_signal",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "bb_upper",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "bb_middle",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "bb_lower",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "bb_pct_b",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "bb_width",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pivot_pp",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pivot_r1",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pivot_r2",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pivot_s1",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "pivot_s2",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "obv_trend",
+          "data_type": "text",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "avg_volume_5d",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        },
+        {
+          "name": "avg_volume_10d",
+          "data_type": "double precision",
+          "nullable": true,
+          "null_pct": null,
+          "distinct_count": null,
+          "low_cardinality": false,
+          "sample_values": [],
+          "pii_type": "none",
+          "sensitivity": "PUBLIC"
+        }
+      ],
+      "keys": [],
+      "foreign_keys": [],
+      "description": "existing target whose columns a mart should match"
+    }
+  ],
+  "notes": [
+    "prices is LIST-partitioned by exchange into 15 partitions",
+    "prices(ticker,exchange) -> ticker_universe(ticker,exchange) matches only 0% of rows (by group: {'HKEX': 0.0, 'ASX': 0.0, 'KLSE': 0.0, 'IDX': 0.0, 'HOSE': 0.0, 'INDEX': 1.0}); better join: ['yf_symbol', 'exchange'] matches 100%; CONFORM RULE: split_part(ticker, '.', 1) matches 100%",
+    "ticker_universe(exchange) -> exchange_ref(exchange) matches only 77% of rows (by group: {'US': 1.0, 'TSE': 0.0, 'HKEX': 1.0, 'TWSE': 0.0, 'LSE': 1.0, 'SSE': 1.0, 'ASX': 1.0, 'SZSE': 1.0, 'KLSE': 1.0, 'HOSE': 1.0, 'SGX': 0.0, 'IDX': 1.0, 'SET': 1.0, 'INDEX': 0.0})"
+  ]
+}
