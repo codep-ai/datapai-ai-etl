@@ -206,6 +206,22 @@ def cmd_lineage(args) -> int:
     return 0
 
 
+def cmd_lineage_project(args) -> int:
+    """Column lineage for ANY dbt project from manifest.json + catalog.json (no generator state)."""
+    from pipeline_planner import column_lineage
+    lin = column_lineage.lineage_from_artifacts(args.project_dir, dialect=args.dialect, select=args.select)
+    _write(lin, args.out)
+    print(f"models={lin['models']} edges={len(lin['edges'])} unresolved={len(lin['unresolved'])} warnings={len(lin['warnings'])} restricted={len(lin['restricted_columns'])}")
+    for m, sm in lin["summary"].items():
+        print(f"  {m:<36} cols={sm['columns']:>3} traced={sm['traced']:>3}")
+    if args.to_target:
+        p = Path(args.project_dir) / "target" / "lineage.json"; p.write_text(json.dumps(lin, default=str), encoding="utf-8"); print(f"wrote {p} (read by assets/lineage.html)")
+    if args.to_db:
+        run_id = __import__("datetime").datetime.utcnow().strftime("%Y%m%dT%H%M%SZ")
+        res = column_lineage.write_lineage_pg(lin, pipeline_id=args.pipeline_id, run_id=run_id); print(f"system db: {res['rows']} edges (run_id={run_id})")
+    return 0
+
+
 def cmd_run(args) -> int:
     from pipeline_planner import graph as g
 
@@ -300,6 +316,13 @@ def main(argv=None) -> int:
     sp.add_argument("--run-id", dest="run_id")
     sp.add_argument("--patch-docs", dest="patch_docs", action="store_true", help="inject the Column lineage link into dbt docs target/index.html")
     sp.set_defaults(fn=cmd_lineage)
+
+    sp = sub.add_parser("lineage-project", help="column lineage for any dbt project from manifest.json + catalog.json")
+    sp.add_argument("--project-dir", dest="project_dir", required=True); sp.add_argument("--dialect", default="snowflake")
+    sp.add_argument("--select", help="substring / tag:<tag> / path filter on models"); sp.add_argument("--out")
+    sp.add_argument("--to-target", dest="to_target", action="store_true", help="write target/lineage.json for the lineage page")
+    sp.add_argument("--to-db", dest="to_db", action="store_true"); sp.add_argument("--pipeline-id", dest="pipeline_id", default="dbt_project")
+    sp.set_defaults(fn=cmd_lineage_project)
 
     args = p.parse_args(argv)
     return args.fn(args)

@@ -346,6 +346,115 @@ def patch_dbt_docs(project_dir: str) -> bool:
     return True
 
 
+def lineage_from_artifacts(project_dir: str, dialect: str = "snowflake", select: Optional[str] = None) -> Dict[str, Any]:
+    """
+    Column-level lineage for ANY dbt project from its own artefacts only: target/manifest.json
+    (compiled SQL, DAG) + target/catalog.json (real columns from the warehouse, `dbt docs generate`).
+    No generator state, no introspector. `select` = substring/tag/path filter on models
+    (e.g. "chinook", "tag:stock_ai", "models/cfd"). Source-column sensitivity comes from the
+    name-based PII heuristics, so PII propagation works on hand-written projects too.
+    """
+    import sqlglot
+    from sqlglot.lineage import lineage as sg_lineage
+    from sqlglot.schema import MappingSchema
+    from ._vendored.pii_classifier import classify_column
+
+    manifest = _load_manifest(project_dir)
+    cat_path = Path(project_dir) / "target" / "catalog.json"
+    if not cat_path.exists():
+        raise FileNotFoundError(f"{cat_path} not found — run `dbt docs generate` first")
+    cat = json.loads(cat_path.read_text(encoding="utf-8"))
+    cat_nodes = {**cat.get("nodes", {}), **cat.get("sources", {})}
+
+    def cols_of(uid: str) -> Dict[str, str]:
+        return {c["name"].lower(): c["type"] for c in cat_nodes.get(uid, {}).get("columns", {}).values()}
+
+    nested: Dict[str, Dict[str, Dict[str, Dict[str, str]]]] = {}
+    rel2name: Dict[str, str] = {}
+    src_sens: Dict[str, Dict[str, str]] = {}
+    for uid, n in manifest.get("nodes", {}).items():
+        if n.get("resource_type") not in ("model", "seed", "snapshot"):
+            continue
+        cols = cols_of(uid)
+        key = (str(n.get("database") or ""), str(n.get("schema") or ""), str(n.get("alias") or n["name"]))
+        if cols:
+            nested.setdefault(key[0], {}).setdefault(key[1], {})[key[2]] = cols
+        rel2name[".".join(key).lower()] = n["name"]
+    for uid, s in manifest.get("sources", {}).items():
+        cols = cols_of(uid)
+        key = (str(s.get("database") or ""), str(s.get("schema") or ""), str(s.get("identifier") or s["name"]))
+        if cols:
+            nested.setdefault(key[0], {}).setdefault(key[1], {})[key[2]] = cols
+        rel2name[".".join(key).lower()] = f"source:{s['name']}"
+        src_sens[f"source:{s['name']}"] = {c: classify_column(c, [], t)[1] for c, t in cols.items()}
+    schema = MappingSchema(nested, dialect=dialect, normalize=True)
+
+    def selected(n: Dict[str, Any]) -> bool:
+        if not select:
+            return True
+        if select.startswith("tag:"):
+            return select[4:] in (n.get("tags") or [])
+        return select in n.get("original_file_path", "") or select in n["name"] or select in n.get("fqn", [])
+
+    models = [n for n in manifest["nodes"].values() if n.get("resource_type") == "model" and selected(n)]
+    # topological order via parent_map so upstream sensitivities exist first
+    order, seen = [], set()
+    def visit(uid):
+        if uid in seen: return
+        seen.add(uid)
+        for p in manifest.get("parent_map", {}).get(uid, []):
+            if p in manifest["nodes"] and manifest["nodes"][p].get("resource_type") == "model": visit(p)
+        order.append(uid)
+    for n in models: visit(n["unique_id"])
+    by_uid = manifest["nodes"]
+    wanted = {n["unique_id"] for n in models}
+
+    edges: List[Dict[str, Any]] = []; columns: Dict[str, Dict[str, Dict[str, Any]]] = {}; unresolved: List[Dict[str, Any]] = []
+    for uid in order:
+        if uid not in wanted: continue
+        node = by_uid[uid]; name = node["name"]; sql = node.get("compiled_code")
+        if not sql:
+            unresolved.append({"model": name, "column": "*", "error": "no compiled_code (run dbt compile/build)"}); continue
+        out_cols = list(cols_of(uid)) or []
+        if not out_cols:
+            try:
+                parsed = sqlglot.parse_one(sql, read=dialect); out_cols = [e.alias_or_name.lower() for e in parsed.selects]
+            except Exception as exc:
+                unresolved.append({"model": name, "column": "*", "error": f"parse: {exc}"[:300]}); continue
+        columns[name] = {}
+        for col in out_cols:
+            try:
+                degraded = False
+                try:
+                    tree = sg_lineage(col, sql, schema=schema, dialect=dialect)
+                except Exception as first:
+                    tree = sg_lineage(col, sql, dialect=dialect); degraded = True
+                    unresolved.append({"model": name, "column": col, "error": f"schema-strict: {first}"[:300], "degraded": True})
+                leaves = [lf for lf in _leaf_sources(tree, dialect) if lf["table"] in rel2name]
+                srcs = [{"node": rel2name[lf["table"]], "column": lf["column"]} for lf in leaves]
+                for s_ in srcs:
+                    edges.append({"from_node": s_["node"], "from_column": s_["column"], "to_node": name, "to_column": col,
+                                  "kind": "passthrough" if len(srcs) == 1 and s_["column"] == col else "derived", **({"degraded": True} if degraded else {})})
+                # sensitivity: declared source → upstream model already traced → root node (seed / un-selected model):
+                # classify by column name so PII in raw seeds (chinook customer.email) still propagates
+                sens = []
+                for s_ in srcs:
+                    if s_["node"] in src_sens:
+                        sens.append(src_sens[s_["node"]].get(s_["column"], "PUBLIC"))
+                    elif s_["node"] in columns:
+                        sens.append(columns[s_["node"]].get(s_["column"], {}).get("sensitivity", "PUBLIC"))
+                    else:
+                        sens.append(classify_column(s_["column"], [])[1])
+                columns[name][col] = {"sources": srcs, "sensitivity": max_sensitivity(sens) if sens else "PUBLIC"}
+            except Exception as exc:
+                unresolved.append({"model": name, "column": col, "error": str(exc)[:300]})
+    restricted = sorted({f"{m}.{c}" for m, cs in columns.items() for c, v in cs.items() if v["sensitivity"] != "PUBLIC"})
+    return {"dialect": dialect, "models": len(columns), "edges": edges, "columns": columns,
+            "unresolved": [u for u in unresolved if not u.get("degraded")], "warnings": [u for u in unresolved if u.get("degraded")],
+            "restricted_columns": restricted,
+            "summary": {m: {"columns": len(c), "traced": sum(1 for v in c.values() if v["sources"])} for m, c in columns.items()}}
+
+
 def to_mermaid(lineage: Dict[str, Any], model: Optional[str] = None, max_edges: int = 400) -> str:
     """Quick visual for the demo: column-level edges (optionally only into one model)."""
     lines = ["graph LR"]

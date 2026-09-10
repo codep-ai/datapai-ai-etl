@@ -66,6 +66,9 @@
   for (const u of candidates) { try { const r = await fetch(u, {cache:'no-store'}); if (r.ok) { manifest = await r.json(); break; } } catch (e) {} }
   const stats = document.getElementById('stats');
   if (!manifest) { stats.textContent = 'manifest.json not found'; return; }
+  // Optional precomputed lineage (any dbt project, no YAML annotation needed): target/lineage.json
+  let precomputed = null;
+  try { const r = await fetch('../lineage.json', {cache:'no-store'}); if (r.ok) precomputed = await r.json(); } catch (e) {}
 
   // ── build column graph from meta.lineage ────────────────────────────────────────────────────────
   const nodes = {};                 // key -> {key, name, kind, layer, tags, cols:[...], depth}
@@ -76,13 +79,21 @@
   }
   const modelByName = {};
   for (const [uid, n] of Object.entries(manifest.nodes || {})) {
+    if (n.resource_type === 'seed' || n.resource_type === 'snapshot') {
+      nodes[n.name] = {key: n.name, uid, name: n.name, kind: 'source', tags: n.tags || [], cols: Object.keys(n.columns || {}).map(c => c.toLowerCase()), colMeta: {}, hasMeta: false, depth: 0, deps: []};
+      continue; }
     if (n.resource_type !== 'model') continue;
     modelByName[n.name] = n.name;
     const cols = Object.entries(n.columns || {});
     const colMeta = {}; let hasMeta = false;
-    for (const [c, info] of cols) { const m = (info.meta || {}); if (m.lineage) hasMeta = true; colMeta[c.toLowerCase()] = {lineage: m.lineage || [], sensitivity: m.sensitivity || 'PUBLIC'}; }
+    const pre = precomputed && precomputed.columns && precomputed.columns[n.name];
+    for (const [c, info] of cols) { const m = (info.meta || {}); const pc = pre && pre[c.toLowerCase()];
+      const lin = pc ? pc.sources.map(s => s.node + '.' + s.column) : (m.lineage || []);
+      if (pc || m.lineage) hasMeta = true;
+      colMeta[c.toLowerCase()] = {lineage: lin, sensitivity: (pc && pc.sensitivity) || m.sensitivity || 'PUBLIC'}; }
+    if (pre) for (const [c, pc] of Object.entries(pre)) if (!colMeta[c]) { colMeta[c] = {lineage: pc.sources.map(s => s.node + '.' + s.column), sensitivity: pc.sensitivity || 'PUBLIC'}; hasMeta = true; }
     const deps = (manifest.parent_map[uid] || []).map(p => { const pn = manifest.nodes[p] || manifest.sources[p]; if (!pn) return null; return pn.resource_type === 'source' ? 'source:' + pn.name : pn.name; }).filter(Boolean);
-    nodes[n.name] = {key: n.name, uid, name: n.name, kind: 'model', layer: (n.tags || []).find(t => ['staging','intermediate','dimension','fact'].includes(t)) || n.config?.schema || '', tags: n.tags || [], cols: cols.map(([c]) => c.toLowerCase()), colMeta, hasMeta, deps};
+    nodes[n.name] = {key: n.name, uid, name: n.name, kind: 'model', layer: (n.tags || []).find(t => ['staging','intermediate','dimension','fact'].includes(t)) || n.config?.schema || '', tags: n.tags || [], cols: [...new Set([...cols.map(([c]) => c.toLowerCase()), ...Object.keys(colMeta)])], colMeta, hasMeta, deps};
   }
   // depth via parent_map (sources = 0)
   const memo = {};
@@ -104,7 +115,7 @@
     }
   }
   // sensitivity for source columns: inherit nothing (PUBLIC unless annotated) — sources carry meta via YAML if present
-  const tags = [...new Set(Object.values(nodes).flatMap(n => n.tags))].filter(t => /_ai$|^stock|^cfd|^chinook|^traceab/.test(t)).sort();
+  const tags = [...new Set(Object.values(nodes).filter(n => n.kind === 'model' && n.hasMeta).flatMap(n => n.tags))].sort();
   const tagSel = document.getElementById('tag');
   tagSel.innerHTML = '<option value="">all tags</option>' + tags.map(t => `<option ${t.endsWith('_ai') ? 'selected' : ''}>${t}</option>`).join('');
 
@@ -167,7 +178,7 @@
     applySelection();
   }
 
-  const docsUrl = (n, graph) => `../index.html#!/${n.kind === 'source' ? 'source' : 'model'}/${n.uid}${graph ? '?g_v=1' : ''}`;
+  const docsUrl = (n, graph) => `../index.html#!/${n.uid.startsWith('source.') ? 'source' : n.uid.startsWith('seed.') ? 'seed' : 'model'}/${n.uid}${graph ? '?g_v=1' : ''}`;
   function select(key) { selected = key; upSet = traverse(key, 'up'); downSet = traverse(key, 'down'); applySelection(); showDetail(key); }
   function applySelection() {
     svg.querySelectorAll('.col').forEach(c => { const k = c.dataset.key; c.classList.remove('sel', 'up', 'down', 'dim'); if (!selected) return;
