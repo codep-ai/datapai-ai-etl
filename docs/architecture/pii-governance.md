@@ -29,6 +29,7 @@ heuristics        every upstream hop             tenant in sys_common_config    
 ## 3. Regulatory mapping (Australia first)
 | Obligation | What the framework produces |
 |---|---|
+| **Seeing originals:** masking is dynamic and role-based (roles per level in `sys_common_config`); PII_ADMIN etc. see clear values, others see hash/redacted. Hash is one-way; bronze keeps raw data under grants; reversible tokenisation is a policy option not yet implemented. Warehouse masking DDL is only applied when `pii_masking_apply_mode='apply'`. |
 | Privacy Act 1988, APP 1/6/11 (open management, use/disclosure, security) | inventory of personal-information columns per system + who can see them (policy roles) + masking evidence |
 | APRA CPS 234 (information security) / CPS 230 (operational risk) | data classification per column, lineage from source to report field, reproducible per build (`run_id`) |
 | ASIC derivative transaction / breach reporting | column lineage from source systems to each reported field; PII in reporting marts flagged |
@@ -36,10 +37,11 @@ heuristics        every upstream hop             tenant in sys_common_config    
 | GDPR (EU clients of AU brokers) Art. 30 records of processing | same inventory export, per pipeline |
 
 ## 3a. Guardrail integration — how it behaves
-The platform guardrail is **deny-by-default**: a model with no `meta.datapai.ai_access_level` (or `deny`) has every column
-short-circuited to DENY before any pii meta is read. Our lineage/PII steps therefore never approve a model for AI; they only
-attach the classification. A human opts models in explicitly (`lineage-project --set-ai-access restricted|approved`,
-or by editing the YAML). Once eligible, PII columns answer `masked` with the configured `masking_rule`, PII_HIGH `deny`,
+**Decision 2026-09-10 (Donny): do not default to deny — early AI adoption, blocking access blocks innovation.** The guardrail's
+default for models without `meta.datapai.ai_access_level` is now DB-driven (`sys_common_config` guardrail /
+`guardrail_default_ai_access_level`, migration 006) and set to `approved`; protection is column-level from our PII metadata.
+A regulated deployment flips the row to `deny` for fail-closed. Explicit per-model meta (`--set-ai-access`) still wins.
+Verified: 127/127 models eligible, 40 PII columns answer `masked`, 869/882 columns output-safe, 0 deny. Once eligible, PII columns answer `masked` with the configured `masking_rule`, PII_HIGH `deny`,
 FINANCIAL `aggregate_only`. Models without a schema YAML (e.g. chinook `obt_invoice`) are invisible to the guardrail —
 `dbt docs`/codegen-generated YAML is a prerequisite.
 
