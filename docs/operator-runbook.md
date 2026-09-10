@@ -48,7 +48,7 @@ cd /home/ec2-user/git/datapai-ai-etl; set -a; source ~/.env.dev; set +a
   --plan out/stock_plan.json --state out/stock_generated.json --out out/stock_lineage.json --annotate
 ```
 `--annotate` writes `meta.lineage` / `meta.sensitivity` into the generated YAML; then run the docs refresh above so `dbt.datap.ai` shows it.
-Add `--to-warehouse [--run-id X]` to persist edges into `DATAPAI.STOCK_MARTS.DBT_COLUMN_LINEAGE` (Iceberg, idempotent per pipeline_id+run_id; schema via `AI_ETL_LINEAGE_SCHEMA`).
+Add `--to-db` to persist edges into the SYSTEM table `datapai.sys_ai_column_lineage` in `datapai_auth_db` (framework Postgres :5433, view `v_sys_ai_column_lineage_latest`; migration 002). `--to-warehouse` is an optional read-only Iceberg projection for BI, off by default.
 
 ## Viewing lineage — column graph
 https://dbt.datap.ai/assets/lineage.html (deep link `#<model>.<column>`). Source of truth `datapai-ai-etl/pipeline_planner/static/lineage.html`;

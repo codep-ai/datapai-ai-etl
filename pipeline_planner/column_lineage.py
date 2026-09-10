@@ -231,13 +231,56 @@ def annotate_yaml(lineage: Dict[str, Any], generated: Dict[str, Dict[str, Any]])
     return touched
 
 
+def _edge_rows(lineage: Dict[str, Any], pipeline_id: str, run_id: str, run_at) -> List[tuple]:
+    rows = []
+    for e in lineage["edges"]:
+        sens = lineage["columns"].get(e["to_node"], {}).get(e["to_column"], {}).get("sensitivity", "PUBLIC")
+        rows.append((pipeline_id, run_id, run_at, lineage["dialect"], e["from_node"], e["from_column"],
+                     e["to_node"], e["to_column"], e["kind"], sens, bool(e.get("degraded", False))))
+    return rows
+
+
+def write_lineage_pg(lineage: Dict[str, Any], pipeline_id: str, run_id: str, prefix: str = "FRAMEWORK_DB") -> Dict[str, Any]:
+    """
+    SYSTEM store (decision 2026-09-10): datapai.sys_ai_column_lineage in the framework Postgres
+    (migrations/002_sys_ai_column_lineage.sql). Engine-independent, joinable to sys_ai_pipeline /
+    guardrail / audit, cheap per-run upserts. Idempotent per (pipeline_id, run_id).
+    Connection from <prefix>_HOST/PORT/NAME/USER/PASSWORD (.env.dev: FRAMEWORK_DB_*).
+    """
+    from datetime import datetime, timezone
+    import psycopg2
+    from psycopg2.extras import execute_values
+
+    conn = psycopg2.connect(
+        host=os.getenv(f"{prefix}_HOST", "localhost"), port=int(os.getenv(f"{prefix}_PORT", "5433")),
+        dbname=os.getenv(f"{prefix}_NAME", "postgres"), user=os.getenv(f"{prefix}_USER", "postgres"),
+        password=os.getenv(f"{prefix}_PASSWORD", "postgres"), connect_timeout=10,
+    )
+    run_at = datetime.now(timezone.utc)
+    rows = _edge_rows(lineage, pipeline_id, run_id, run_at)
+    try:
+        cur = conn.cursor()
+        cur.execute("DELETE FROM datapai.sys_ai_column_lineage WHERE pipeline_id=%s AND run_id=%s", (pipeline_id, run_id))
+        if rows:
+            execute_values(cur,
+                "INSERT INTO datapai.sys_ai_column_lineage (pipeline_id, run_id, run_at, dialect, from_node, from_column, "
+                "to_node, to_column, kind, to_sensitivity, degraded) VALUES %s", rows, page_size=500)
+        conn.commit()
+        cur.execute("SELECT count(*) FROM datapai.sys_ai_column_lineage WHERE pipeline_id=%s AND run_id=%s", (pipeline_id, run_id))
+        n = cur.fetchone()[0]
+        cur.close()
+    finally:
+        conn.close()
+    logger.info("sys_ai_column_lineage: %d edges for %s/%s", n, pipeline_id, run_id)
+    return {"table": "datapai.sys_ai_column_lineage", "rows": int(n), "pipeline_id": pipeline_id, "run_id": run_id}
+
+
 def write_lineage_table(lineage: Dict[str, Any], pipeline_id: str, run_id: str,
                         database: Optional[str] = None, schema: Optional[str] = None,
                         table: str = "DBT_COLUMN_LINEAGE") -> Dict[str, Any]:
     """
-    Persist column edges + per-column sensitivity as an **Iceberg** table in the warehouse so lineage is
-    queryable in SQL / Lightdash and kept per run (history, diffable). Idempotent per (pipeline_id, run_id).
-    Engine: the pipeline's dbt profile (Snowflake today; same DDL shape as raw_loader bronze tables).
+    OPTIONAL read-only projection into the customer's warehouse (Iceberg) for BI joins. The system of
+    record is write_lineage_pg(). Off by default; enable with `cli lineage --to-warehouse`.
     """
     from datetime import datetime, timezone
     from . import snowflake_conn

@@ -1,12 +1,12 @@
 -- 001_sys_ai_pipeline.sql
 -- Registry for AI-generated dbt pipelines (decision #9, 2026-09-09).
 --
--- Target database: datapai_framework_db (docker, EC2 :5433), schema datapai
+-- Target database: docker datapai_framework_db (EC2 :5433), DATABASE datapai_auth_db (FRAMEWORK_DB_NAME in .env.dev —
+--   this is where every other datapai.sys_* table lives; NOT the default "postgres" db), schema datapai
 --   ssh -i ~/.ssh/Linux-CodeCambat.pem ec2-user@platform.datap.ai \
---     "docker exec -i datapai_framework_db psql -U postgres -d postgres" < migrations/001_sys_ai_pipeline.sql
+--     "docker exec -i datapai_framework_db psql -U postgres -d datapai_auth_db" < migrations/001_sys_ai_pipeline.sql
 --
--- Status: FILE ONLY as of Week 1 — NOT applied. Apply in Week 3 together with the
--- register node (pipeline_registry). Applying is a prod DDL change → needs confirmation.
+-- Status: APPLIED 2026-09-10 to datapai_auth_db (approved by Donny). Seed row stock_ai_medallion present.
 --
 -- Why a table and not YAML: CLAUDE.md DB-driven-defaults rule; lets the
 -- datapai_eod_dynamic.py-style DAG factory read pipelines from the DB later.

@@ -65,16 +65,16 @@ columns reached. Deep link: `#fct_daily_price.close_usd`. Survives `dbt docs gen
 
 Mermaid export also available: `docs/samples/2026-09-10-stock_column_lineage_fct_daily_price.mmd`.
 
-## 5. Queryable in the warehouse — `DATAPAI.STOCK_MARTS.DBT_COLUMN_LINEAGE` (Iceberg)
-`lineage --to-warehouse` persists every edge per run (`pipeline_id`, `run_id`, `run_at`, from/to node+column, kind, sensitivity).
-Recursive trace in plain SQL (also a ready-made Lightdash explore):
+## 5. Queryable system table — `datapai.sys_ai_column_lineage` (framework Postgres, `datapai_auth_db`)
+`lineage --to-db` persists every edge per run (`pipeline_id`, `run_id`, `run_at`, from/to node+column, kind, sensitivity). System table, not
+customer data: engine-independent and joinable to `sys_ai_pipeline`. Recursive trace in plain SQL (use `v_sys_ai_column_lineage_latest`):
 ```sql
 with recursive up as (
   select from_node, from_column, to_node, to_column, 1 as hop
-  from DATAPAI.STOCK_MARTS.DBT_COLUMN_LINEAGE where to_node='fct_daily_price' and to_column='close_usd'
+  from datapai.v_sys_ai_column_lineage_latest where to_node='fct_daily_price' and to_column='close_usd'
   union all
   select l.from_node, l.from_column, l.to_node, l.to_column, up.hop+1
-  from DATAPAI.STOCK_MARTS.DBT_COLUMN_LINEAGE l join up on l.to_node=up.from_node and l.to_column=up.from_column
+  from datapai.v_sys_ai_column_lineage_latest l join up on l.to_node=up.from_node and l.to_column=up.from_column
   where up.hop < 6)
 select hop, from_node||'.'||from_column as upstream from up order by 1, 2;
 -- 1 int_price_with_indicators.close_usd
