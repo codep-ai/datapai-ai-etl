@@ -60,6 +60,9 @@ def _merge_request(args) -> Dict[str, Any]:
         "required_models": _csv(getattr(args, "required", None)) or cfg.get("required_models", []),
         "tag": getattr(args, "tag", None) or cfg.get("tag", f"{args.domain}_ai"),
         "source_name": getattr(args, "source_name", None) or cfg.get("source_name", f"src_{args.domain}"),
+        "dbt_project_dir": cfg.get("dbt_project_dir") or os.getenv("AI_ETL_DBT_PROJECT_DIR", "/home/ec2-user/git/dbt-demo"),
+        "dbt_models_subdir": cfg.get("dbt_models_subdir") or os.getenv("AI_ETL_DBT_MODELS_SUBDIR", f"models/{args.domain}"),
+        "hitl_required": bool(cfg.get("hitl_required", False)),
     }
     if not req["tables"]:
         raise SystemExit("no tables: pass --tables or add pipeline_planner/domains/<domain>.json")
@@ -125,6 +128,55 @@ def cmd_validate(args) -> int:
     return 0
 
 
+def _target_from(req):
+    from pipeline_planner.model_generator import GenerationTarget
+    return GenerationTarget(project_dir=req["dbt_project_dir"], models_subdir=req["dbt_models_subdir"], tag=req["tag"])
+
+
+def _load_json(path):
+    return json.loads(Path(path).read_text(encoding="utf-8"))
+
+
+def cmd_load_bronze(args) -> int:
+    from pipeline_planner import raw_loader
+    cat = SourceCatalog.model_validate(_load_json(args.catalog))
+    res = raw_loader.load_bronze(cat, only=_csv(args.only) or None)
+    print(json.dumps(res, indent=2)); return 0
+
+
+def cmd_generate(args) -> int:
+    from pipeline_planner import model_generator
+    req = _merge_request(args)
+    cat = SourceCatalog.model_validate(_load_json(args.catalog))
+    plan = medallion_planner.load_plan(args.plan)
+    errors = plan.validate_graph(cat, req["required_models"])
+    if errors:
+        print("plan invalid:", *errors, sep="\n  - "); return 1
+    prev = _load_json(args.state) if args.state and Path(args.state).exists() else {}
+    gen = model_generator.generate_all(plan, cat, _target_from(req), only=_csv(args.only) or None, generated=prev)
+    _write(gen, args.state or args.out)
+    for n in plan.build_order:
+        if n in gen: print(f"  {n:<32} {gen[n]['sql_path']}  cols={len(gen[n]['columns'])}")
+    return 0
+
+
+def cmd_build(args) -> int:
+    from pipeline_planner import build_loop
+    req = _merge_request(args)
+    cat = SourceCatalog.model_validate(_load_json(args.catalog))
+    plan = medallion_planner.load_plan(args.plan)
+    plan.validate_graph(cat, req["required_models"])
+    gen = _load_json(args.state) if args.state and Path(args.state).exists() else {}
+    res = build_loop.build_and_repair(plan, cat, _target_from(req), gen, max_attempts=args.max_attempts)
+    if args.state:
+        _write(res["generated"], args.state)
+    summary = {k: v for k, v in res.items() if k not in ("generated", "final_results")}
+    summary["final_failed"] = [f"{f['resource_type']}:{f['name']}: {f['message'][:200]}" for f in build_loop.failures(res["final_results"])]
+    _write(summary, args.out)
+    print("BUILD", "GREEN" if res["ok"] else "RED", f"attempts={len(res['attempts'])} repairs={len(res['repairs'])}")
+    return 0 if res["ok"] else 1
+
+
 def cmd_run(args) -> int:
     from pipeline_planner import graph as g
 
@@ -133,8 +185,11 @@ def cmd_run(args) -> int:
     thread_id = args.thread_id or f"{req['domain']}-{uuid.uuid4().hex[:8]}"
     config = {"configurable": {"thread_id": thread_id}}
 
+    if args.plan:
+        req["plan"] = _load_json(args.plan)
+
     def _exec(checkpointer):
-        app = g.build_graph(checkpointer=checkpointer, week1_only=True)
+        app = g.build_graph(checkpointer=checkpointer, stop_after=args.stop_after, hitl=req.get("hitl_required", False))
         return app.invoke(req, config=config)
 
     if cp is None:
@@ -152,10 +207,12 @@ def cmd_run(args) -> int:
         plan = MedallionPlan.model_validate(final["plan"])
         _write(plan.model_dump(), args.out)
         print(plan.summary())
+    if final.get("build"):
+        print(json.dumps(final["build"], indent=2, default=str))
     if final.get("plan_errors"):
         print("errors:", *final["plan_errors"], sep="\n  - ")
         return 1
-    return 0
+    return 0 if final.get("status") in ("plan_valid", "built", "diff_pending") else 1
 
 
 def main(argv=None) -> int:
@@ -188,8 +245,22 @@ def main(argv=None) -> int:
     sp.set_defaults(fn=cmd_validate)
 
     sp = sub.add_parser("run"); common(sp)
-    sp.add_argument("--thread-id")
+    sp.add_argument("--thread-id"); sp.add_argument("--plan", help="reuse a saved plan instead of calling the LLM")
+    sp.add_argument("--stop-after", default="validate", choices=["validate", "build_repair", "diff"])
     sp.set_defaults(fn=cmd_run)
+
+    sp = sub.add_parser("load-bronze"); sp.add_argument("--catalog", required=True); sp.add_argument("--only")
+    sp.set_defaults(fn=cmd_load_bronze)
+
+    sp = sub.add_parser("generate"); common(sp)
+    sp.add_argument("--catalog", required=True); sp.add_argument("--plan", required=True)
+    sp.add_argument("--only"); sp.add_argument("--state", help="generated-models state JSON (read+write)")
+    sp.set_defaults(fn=cmd_generate)
+
+    sp = sub.add_parser("build"); common(sp)
+    sp.add_argument("--catalog", required=True); sp.add_argument("--plan", required=True)
+    sp.add_argument("--state"); sp.add_argument("--max-attempts", type=int, default=3)
+    sp.set_defaults(fn=cmd_build)
 
     args = p.parse_args(argv)
     return args.fn(args)

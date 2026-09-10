@@ -4,6 +4,9 @@
   "schema_name": "datapai",
   "source_name": "src_stock",
   "tag": "stock_ai",
+  "dbt_project_dir": "/home/ec2-user/git/dbt-demo",
+  "dbt_models_subdir": "models/stock",
+  "hitl_required": false,
   "tables": ["prices", "ticker_universe", "exchange_ref", "fx_rates_daily", "stock_market_closed_dates"],
   "target_contracts": ["screener_metrics"],
   "required_models": [

@@ -7,7 +7,7 @@
     {
       "name": "stg_prices",
       "layer": "staging",
-      "description": "One row per daily price record, typed and renamed.",
+      "description": "One row per ticker, date, and exchange price record.",
       "sources": [
         "prices"
       ],
@@ -23,7 +23,7 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Select all columns from raw.prices; cast trade_date to DATE.",
+      "logic": "select ticker, cast(trade_date as date) as trade_date, close, volume, open, high, low, adj_close, exchange from prices",
       "tests": [
         {
           "type": "not_null",
@@ -36,14 +36,6 @@
         {
           "type": "not_null",
           "column": "trade_date",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "exchange",
           "columns": null,
           "values": null,
           "to": null,
@@ -70,7 +62,7 @@
     {
       "name": "stg_ticker_universe",
       "layer": "staging",
-      "description": "One row per ticker-exchange pair, typed and renamed.",
+      "description": "One row per ticker-exchange pair.",
       "sources": [
         "ticker_universe"
       ],
@@ -85,19 +77,11 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Select all columns from raw.ticker_universe; filter for is_active = TRUE.",
+      "logic": "select ticker, exchange, yf_symbol, company_name, sector, is_active, asset_type, region from ticker_universe",
       "tests": [
         {
           "type": "not_null",
           "column": "ticker",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "exchange",
           "columns": null,
           "values": null,
           "to": null,
@@ -123,7 +107,7 @@
     {
       "name": "stg_exchange_ref",
       "layer": "staging",
-      "description": "One row per exchange reference, typed and renamed.",
+      "description": "One row per exchange with currency metadata.",
       "sources": [
         "exchange_ref"
       ],
@@ -137,16 +121,8 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Select all columns from raw.exchange_ref.",
+      "logic": "select exchange, currency_code, currency_symbol, currency_name_en, country from exchange_ref",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "exchange",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "unique",
           "column": "exchange",
@@ -162,15 +138,14 @@
       ]
     },
     {
-      "name": "stg_fx_rates_daily",
+      "name": "stg_fx_rates",
       "layer": "staging",
-      "description": "One row per daily FX rate, typed and renamed.",
+      "description": "Daily FX rates vs USD.",
       "sources": [
         "fx_rates_daily"
       ],
       "refs": [],
       "grain": [
-        "base_currency",
         "quote_currency",
         "trade_date"
       ],
@@ -180,37 +155,12 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Select all columns from raw.fx_rates_daily; cast trade_date to DATE; filter base_currency = 'USD'.",
+      "logic": "select base_currency, quote_currency, rate, cast(trade_date as date) as trade_date from fx_rates_daily",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "base_currency",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "quote_currency",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "trade_date",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "unique_combination_of_columns",
           "column": null,
           "columns": [
-            "base_currency",
             "quote_currency",
             "trade_date"
           ],
@@ -225,9 +175,9 @@
       ]
     },
     {
-      "name": "stg_stock_market_closed_dates",
+      "name": "stg_closed_dates",
       "layer": "staging",
-      "description": "One row per market closed date, typed and renamed.",
+      "description": "Market holiday dates per exchange.",
       "sources": [
         "stock_market_closed_dates"
       ],
@@ -242,31 +192,12 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Select all columns from raw.stock_market_closed_dates.",
+      "logic": "select market_code, closed_date, reason from stock_market_closed_dates",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "market_code",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "not_null",
           "column": "closed_date",
           "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "unique_combination_of_columns",
-          "column": null,
-          "columns": [
-            "market_code",
-            "closed_date"
-          ],
           "values": null,
           "to": null,
           "field": null
@@ -280,14 +211,12 @@
     {
       "name": "dim_ticker",
       "layer": "dimension",
-      "description": "Ticker dimension, SCD type 1, one row per active ticker-exchange pair.",
+      "description": "Ticker dimension, SCD type 1.",
       "sources": [],
       "refs": [
         "stg_ticker_universe"
       ],
-      "grain": [
-        "ticker_key"
-      ],
+      "grain": [],
       "natural_key": [
         "ticker",
         "exchange"
@@ -297,31 +226,12 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Generate ticker_key using dbt_utils.generate_surrogate_key(['ticker', 'exchange']). Select ticker, exchange, yf_symbol, company_name, asset_type, is_active.",
+      "logic": "select dbt_utils.generate_surrogate_key(['ticker', 'exchange']) as ticker_key, * from stg_ticker_universe",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "ticker_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "unique",
           "column": "ticker_key",
           "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "unique_combination_of_columns",
-          "column": null,
-          "columns": [
-            "ticker",
-            "exchange"
-          ],
           "values": null,
           "to": null,
           "field": null
@@ -335,14 +245,12 @@
     {
       "name": "dim_exchange",
       "layer": "dimension",
-      "description": "Exchange dimension, SCD type 1, one row per exchange.",
+      "description": "Exchange dimension, SCD type 1.",
       "sources": [],
       "refs": [
         "stg_exchange_ref"
       ],
-      "grain": [
-        "exchange_key"
-      ],
+      "grain": [],
       "natural_key": [
         "exchange"
       ],
@@ -351,27 +259,11 @@
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Generate exchange_key using dbt_utils.generate_surrogate_key(['exchange']). Select exchange, currency_code, currency_symbol, currency_name_en, country.",
+      "logic": "select dbt_utils.generate_surrogate_key(['exchange']) as exchange_key, * from stg_exchange_ref",
       "tests": [
         {
-          "type": "not_null",
-          "column": "exchange_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
           "type": "unique",
           "column": "exchange_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "unique",
-          "column": "exchange",
           "columns": null,
           "values": null,
           "to": null,
@@ -386,43 +278,24 @@
     {
       "name": "dim_date",
       "layer": "dimension",
-      "description": "Trading calendar dimension, one row per calendar day per exchange with trading status.",
+      "description": "Trading calendar dimension.",
       "sources": [],
       "refs": [
         "stg_prices",
-        "stg_stock_market_closed_dates",
-        "stg_exchange_ref"
+        "stg_closed_dates"
       ],
-      "grain": [
-        "date_key"
-      ],
+      "grain": [],
       "natural_key": [
         "date_day",
         "exchange"
       ],
-      "surrogate_key": "date_key",
-      "scd_type": 1,
+      "surrogate_key": null,
+      "scd_type": null,
       "foreign_keys": [],
       "measures": [],
       "columns": [],
-      "logic": "Generate a calendar spine for all days between MIN(trade_date) and MAX(trade_date) from stg_prices. Cross join with distinct exchanges from stg_exchange_ref. Left join stg_stock_market_closed_dates on date_day = closed_date and exchange = market_code to derive is_trading_day (TRUE if no match, FALSE if match). Add standard date attributes (day_of_week, day_of_month, day_of_year, week_of_year, month, quarter, year, is_weekend, is_month_start, is_month_end, is_quarter_start, is_quarter_end, is_year_start, is_year_end). Generate date_key from dbt_utils.generate_surrogate_key(['date_day', 'exchange']).",
+      "logic": "with spine as (select date_day from (select min(trade_date) as sd, max(trade_date) as ed from stg_prices), lateral (select dateadd(day, seq4(), sd) as date_day from table(generator(rowcount => 10000))) where date_day <= ed) select s.date_day, e.exchange, case when c.closed_date is null and dayname(s.date_day) not in ('Sat', 'Sun') then true else false end as is_trading_day from spine s cross join (select distinct exchange from stg_prices) e left join stg_closed_dates c on s.date_day = c.closed_date and e.exchange = c.market_code",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "date_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "unique",
-          "column": "date_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "unique_combination_of_columns",
           "column": null,
@@ -441,16 +314,14 @@
       ]
     },
     {
-      "name": "int_daily_price_enriched",
+      "name": "int_price_with_indicators",
       "layer": "intermediate",
-      "description": "Daily price records enriched with ticker details, exchange currency, USD-converted close, and trading day status.",
+      "description": "Price grain with technical indicators and OBV.",
       "sources": [],
       "refs": [
         "stg_prices",
-        "stg_ticker_universe",
-        "stg_exchange_ref",
-        "stg_fx_rates_daily",
-        "stg_stock_market_closed_dates"
+        "stg_fx_rates",
+        "stg_exchange_ref"
       ],
       "grain": [
         "ticker",
@@ -462,41 +333,14 @@
       "scd_type": null,
       "foreign_keys": [],
       "measures": [
-        "close",
-        "volume",
-        "open",
-        "high",
-        "low",
-        "adj_close",
-        "close_usd"
+        "sma_5",
+        "sma_200",
+        "rsi_14",
+        "obv_trend"
       ],
       "columns": [],
-      "logic": "Left join stg_prices to stg_ticker_universe on ticker and exchange to get yf_symbol, company_name, asset_type. Left join stg_exchange_ref on stg_prices.exchange = stg_exchange_ref.exchange to get currency_code. Left join stg_fx_rates_daily on stg_exchange_ref.currency_code = stg_fx_rates_daily.quote_currency and stg_prices.trade_date = stg_fx_rates_daily.trade_date. Use LAST_VALUE(rate) IGNORE NULLS OVER (PARTITION BY stg_exchange_ref.currency_code ORDER BY stg_fx_rates_daily.trade_date) to get the latest prior FX rate if no exact match. Compute close_usd = stg_prices.close * fx_rate. Left join stg_stock_market_closed_dates on stg_prices.trade_date = stg_stock_market_closed_dates.closed_date and stg_prices.exchange = stg_stock_market_closed_dates.market_code to derive is_trading_day (TRUE if stg_stock_market_closed_dates.closed_date IS NULL, FALSE otherwise). Filter for is_trading_day = TRUE. Select all original price columns, plus yf_symbol, company_name, asset_type, currency_code, close_usd.",
+      "logic": "join stg_prices p join stg_exchange_ref e on p.exchange=e.exchange left join stg_fx_rates fx on e.currency_code=fx.quote_currency and p.trade_date=fx.trade_date; close_usd = p.close / coalesce(fx.rate, last_value(fx.rate) over (partition by e.currency_code order by p.trade_date rows between unbounded preceding and current row)); indicators per (ticker, exchange) order by trade_date: sma_N = avg(close) over trailing N rows; volatility_20d = stddev(ln(close/nullif(lag(close),0))) over 20 rows * sqrt(252) * 100; rsi_14 = 100 - (100 / (1 + (avg(case when close>lag(close) then close-lag(close) else 0 end) over 14 rows / nullif(avg(case when close<lag(close) then lag(close)-close else 0 end) over 14 rows, 0)))); macd_line = ema(close, 12) - ema(close, 26); macd_signal = ema(macd_line, 9); obv = sum(case when close > lag(close) then volume when close < lag(close) then -volume else 0 end) over unbounded preceding; obv_trend = case when (obv - lag(obv, 10)) > 0 then 'UP' when (obv - lag(obv, 10)) < 0 then 'DOWN' else 'FLAT' end; pivot_pp = (lag(high)+lag(low)+lag(close))/3; kdj_k = sma((close-min(low,9) over 9 rows)/(nullif(max(high,9) over 9 rows - min(low,9) over 9 rows, 0))*100, 3)",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "ticker",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "exchange",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "trade_date",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "unique_combination_of_columns",
           "column": null,
@@ -518,18 +362,17 @@
     {
       "name": "fct_daily_price",
       "layer": "fact",
-      "description": "Transaction-grain fact: one row per daily price with FKs to ticker, exchange, and date, including USD-converted close.",
+      "description": "Daily price fact with local and USD values.",
       "sources": [],
       "refs": [
-        "int_daily_price_enriched",
+        "int_price_with_indicators",
         "dim_ticker",
-        "dim_exchange",
-        "dim_date"
+        "dim_exchange"
       ],
       "grain": [
-        "ticker_key",
-        "exchange_key",
-        "date_key"
+        "ticker",
+        "exchange",
+        "trade_date"
       ],
       "natural_key": [],
       "surrogate_key": null,
@@ -544,57 +387,20 @@
           "column": "exchange_key",
           "ref_model": "dim_exchange",
           "ref_column": "exchange_key"
-        },
-        {
-          "column": "date_key",
-          "ref_model": "dim_date",
-          "ref_column": "date_key"
         }
       ],
       "measures": [
         "close",
         "volume",
-        "open",
-        "high",
-        "low",
-        "adj_close",
         "close_usd"
       ],
       "columns": [],
-      "logic": "Left join int_daily_price_enriched to dim_ticker on int_daily_price_enriched.ticker = dim_ticker.ticker and int_daily_price_enriched.exchange = dim_ticker.exchange. Left join dim_exchange on int_daily_price_enriched.exchange = dim_exchange.exchange. Left join dim_date on int_daily_price_enriched.trade_date = dim_date.date_day and int_daily_price_enriched.exchange = dim_date.exchange. Select all original price columns from int_daily_price_enriched, plus ticker_key, exchange_key, date_key, and close_usd.",
+      "logic": "join int_price_with_indicators i join dim_ticker t on i.ticker=t.ticker and i.exchange=t.exchange join dim_exchange e on i.exchange=e.exchange; select t.ticker_key, e.exchange_key, i.*",
       "tests": [
         {
           "type": "not_null",
           "column": "ticker_key",
           "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "exchange_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "date_key",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "unique_combination_of_columns",
-          "column": null,
-          "columns": [
-            "ticker_key",
-            "exchange_key",
-            "date_key"
-          ],
           "values": null,
           "to": null,
           "field": null
@@ -606,118 +412,6 @@
           "values": null,
           "to": "dim_ticker",
           "field": "ticker_key"
-        },
-        {
-          "type": "relationships",
-          "column": "exchange_key",
-          "columns": null,
-          "values": null,
-          "to": "dim_exchange",
-          "field": "exchange_key"
-        },
-        {
-          "type": "relationships",
-          "column": "date_key",
-          "columns": null,
-          "values": null,
-          "to": "dim_date",
-          "field": "date_key"
-        }
-      ],
-      "materialized": "table",
-      "tags": [
-        "stock_ai"
-      ]
-    },
-    {
-      "name": "int_price_with_indicators",
-      "layer": "intermediate",
-      "description": "Daily prices enriched with various technical indicators, one row per ticker-exchange-date.",
-      "sources": [],
-      "refs": [
-        "int_daily_price_enriched"
-      ],
-      "grain": [
-        "ticker",
-        "exchange",
-        "trade_date"
-      ],
-      "natural_key": [],
-      "surrogate_key": null,
-      "scd_type": null,
-      "foreign_keys": [],
-      "measures": [
-        "close",
-        "volume",
-        "open",
-        "high",
-        "low",
-        "adj_close",
-        "close_usd",
-        "sma_5",
-        "sma_10",
-        "sma_20",
-        "sma_30",
-        "sma_50",
-        "sma_200",
-        "rsi_14",
-        "volatility_20d",
-        "avg_volume_20d",
-        "high_52w",
-        "low_52w",
-        "macd_line",
-        "macd_signal",
-        "macd_histogram",
-        "bb_upper",
-        "bb_middle",
-        "bb_lower",
-        "kdj_k",
-        "kdj_d",
-        "kdj_j",
-        "pivot_pp",
-        "pivot_r1",
-        "pivot_r2",
-        "pivot_s1",
-        "pivot_s2"
-      ],
-      "columns": [],
-      "logic": "Select all columns from int_daily_price_enriched. Partition by (ticker, exchange) and order by trade_date. Compute: SMA (Simple Moving Average) for 5, 10, 20, 30, 50, 200 trailing rows on close. RSI-14: Calculate daily gain/loss, then simple average of gains and losses over 14 trailing rows to get AvgGain and AvgLoss. RSI = 100 - (100 / (1 + AvgGain / AvgLoss)). 20-day annualised volatility: STDEV(daily_return) * SQRT(252) * 100 over 20 trailing rows. Daily return = (close / LAG(close, 1) - 1). 20-day average volume: AVG(volume) over 20 trailing rows. 52-week (252-row) high/low: MAX(high) and MIN(low) over 252 trailing rows. MACD(12,26,9): EMA(close, 12), EMA(close, 26), MACD_line = EMA12 - EMA26, MACD_signal = EMA(MACD_line, 9). Bollinger Bands(20,2): Middle Band = SMA(close, 20), Upper Band = Middle Band + 2 * STDEV(close, 20), Lower Band = Middle Band - 2 * STDEV(close, 20). KDJ(9,3,3): Calculate %K, %D, %J based on 9-period highest high, lowest low, and 3-period SMAs. Pivot Points: PP = (LAG(high,1) + LAG(low,1) + LAG(close,1)) / 3. R1 = 2*PP - LAG(low,1), S1 = 2*PP - LAG(high,1), R2 = PP + (LAG(high,1) - LAG(low,1)), S2 = PP - (LAG(high,1) - LAG(low,1)).",
-      "tests": [
-        {
-          "type": "not_null",
-          "column": "ticker",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "exchange",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "trade_date",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "unique_combination_of_columns",
-          "column": null,
-          "columns": [
-            "ticker",
-            "exchange",
-            "trade_date"
-          ],
-          "values": null,
-          "to": null,
-          "field": null
         }
       ],
       "materialized": "table",
@@ -728,7 +422,7 @@
     {
       "name": "fct_screener_metrics",
       "layer": "fact",
-      "description": "Latest-row-per-ticker-exchange snapshot of screener metrics, matching the datapai.screener_metrics contract.",
+      "description": "Latest snapshot of screener metrics per ticker.",
       "sources": [],
       "refs": [
         "int_price_with_indicators",
@@ -742,7 +436,18 @@
       "natural_key": [],
       "surrogate_key": null,
       "scd_type": null,
-      "foreign_keys": [],
+      "foreign_keys": [
+        {
+          "column": "ticker_key",
+          "ref_model": "dim_ticker",
+          "ref_column": "ticker_key"
+        },
+        {
+          "column": "exchange_key",
+          "ref_model": "dim_exchange",
+          "ref_column": "exchange_key"
+        }
+      ],
       "measures": [],
       "columns": [
         "ticker",
@@ -801,24 +506,8 @@
         "avg_volume_5d",
         "avg_volume_10d"
       ],
-      "logic": "Join int_price_with_indicators to dim_ticker on int_price_with_indicators.ticker = dim_ticker.ticker and int_price_with_indicators.exchange = dim_ticker.exchange. Join dim_exchange on int_price_with_indicators.exchange = dim_exchange.exchange. Select the latest row for each (ticker, exchange) from int_price_with_indicators using a window function (ROW_NUMBER() OVER (PARTITION BY ticker, exchange ORDER BY trade_date DESC) = 1). Compute: latest_close = close, latest_volume = volume, trade_date = trade_date. Percentage changes: (close / LAG(close, N) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) - 1) * 100 for N = 1, 5, 21 (1m), 63 (3m), 126 (6m), 252 (1y). price_vs_smaN_pct = (close / sma_N - 1) * 100. Golden cross = sma_50 > sma_200 AND LAG(sma_50, 1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) <= LAG(sma_200, 1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date). Death cross = sma_50 < sma_200 AND LAG(sma_50, 1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) >= LAG(sma_200, 1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date). pct_from_52w_high = (close / high_52w - 1) * 100. pct_from_52w_low = (close / low_52w - 1) * 100. volume_ratio = latest_volume / avg_volume_20d. macd_histogram = macd_line - macd_signal. macd_trend = CASE WHEN macd_line > macd_signal AND LAG(macd_line,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) <= LAG(macd_signal,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) THEN 'Bullish Crossover' WHEN macd_line < macd_signal AND LAG(macd_line,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) >= LAG(macd_signal,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) THEN 'Bearish Crossover' ELSE NULL END. kdj_signal = CASE WHEN kdj_k > kdj_d AND LAG(kdj_k,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) <= LAG(kdj_d,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) THEN 'Buy' WHEN kdj_k < kdj_d AND LAG(kdj_d,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) >= LAG(kdj_d,1) OVER (PARTITION BY ticker, exchange ORDER BY trade_date) THEN 'Sell' ELSE NULL END. bb_pct_b = (close - bb_lower) / (bb_upper - bb_lower). bb_width = (bb_upper - bb_lower) / bb_middle. obv_trend: requires On-Balance Volume calculation (not in int_price_with_indicators, will be NULL). avg_volume_5d = AVG(volume) OVER (PARTITION BY ticker, exchange ORDER BY trade_date ROWS BETWEEN 4 PRECEDING AND CURRENT ROW). avg_volume_10d = AVG(volume) OVER (PARTITION BY ticker, exchange ORDER BY trade_date ROWS BETWEEN 9 PRECEDING AND CURRENT ROW). computed_at = CURRENT_TIMESTAMP().",
+      "logic": "filter int_price_with_indicators for latest trade_date per (ticker, exchange); join dim_ticker and dim_exchange; change_Nd_pct = (close - lag(close, N)) / lag(close, N); golden_cross = sma_50 > sma_200; death_cross = sma_50 < sma_200; macd_trend = case when macd_line > macd_signal then 'BULLISH' else 'BEARISH' end; kdj_signal = case when kdj_j > 80 then 'OVERBOUGHT' when kdj_j < 20 then 'OVERSOLD' else 'NEUTRAL' end; volume_ratio = volume / nullif(avg_volume_20d, 0); computed_at = current_timestamp()",
       "tests": [
-        {
-          "type": "not_null",
-          "column": "ticker",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
-        {
-          "type": "not_null",
-          "column": "exchange",
-          "columns": null,
-          "values": null,
-          "to": null,
-          "field": null
-        },
         {
           "type": "unique_combination_of_columns",
           "column": null,
@@ -829,6 +518,22 @@
           "values": null,
           "to": null,
           "field": null
+        },
+        {
+          "type": "relationships",
+          "column": "ticker_key",
+          "columns": null,
+          "values": null,
+          "to": "dim_ticker",
+          "field": "ticker_key"
+        },
+        {
+          "type": "relationships",
+          "column": "exchange_key",
+          "columns": null,
+          "values": null,
+          "to": "dim_exchange",
+          "field": "exchange_key"
         }
       ],
       "materialized": "table",
@@ -838,12 +543,11 @@
     }
   ],
   "build_order": [
+    "stg_closed_dates",
     "stg_exchange_ref",
-    "stg_fx_rates_daily",
+    "stg_fx_rates",
     "stg_prices",
-    "stg_stock_market_closed_dates",
     "stg_ticker_universe",
-    "int_daily_price_enriched",
     "int_price_with_indicators",
     "dim_date",
     "dim_exchange",
@@ -851,29 +555,22 @@
     "fct_daily_price",
     "fct_screener_metrics"
   ],
-  "notes": "Staging models read directly from raw sources. All other models read from dbt refs only. dim_date is generated as a trading calendar by cross-joining a date spine with distinct exchanges and then left joining market closed dates. FX rates for close_usd in int_daily_price_enriched use the latest available rate if no exact match for the trade_date. The 'obv_trend' column in fct_screener_metrics will be NULL as OBV calculation is not specified in int_price_with_indicators. All models will materialize as Iceberg tables on Snowflake.",
+  "notes": "int_price_with_indicators now refs staging to avoid layer violation. fct_screener_metrics includes required FKs and relationships tests.",
   "planner_meta": {
     "attempts": [
       {
         "attempt": 0,
         "errors": [
+          "fct_screener_metrics: refs dimension dim_ticker but declares no foreign_keys entry to it",
+          "fct_screener_metrics: refs dimension dim_exchange but declares no foreign_keys entry to it",
           "int_price_with_indicators (intermediate) depends on fct_daily_price (fact): downstream layer referenced upstream"
         ],
         "models": 11
       },
       {
         "attempt": 1,
-        "errors": [
-          "int_daily_price_enriched (intermediate) depends on dim_ticker (dimension): downstream layer referenced upstream",
-          "int_daily_price_enriched (intermediate) depends on dim_exchange (dimension): downstream layer referenced upstream",
-          "int_daily_price_enriched (intermediate) depends on dim_date (dimension): downstream layer referenced upstream"
-        ],
-        "models": 12
-      },
-      {
-        "attempt": 2,
         "errors": [],
-        "models": 12
+        "models": 11
       }
     ],
     "few_shot": "chinook_medallion_plan.json",

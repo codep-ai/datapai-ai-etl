@@ -52,6 +52,10 @@ def get_router_chat(temperature: float = 0.1) -> ChatFn:
     # ceiling for this process only; operators can still override via env.
     os.environ.setdefault("DATAPAI_ADHOC_MAX_TOKENS", os.getenv("AI_ETL_PLANNER_MAX_TOKENS", "32768"))
     os.environ.setdefault("DATAPAI_ADHOC_THINKING", os.getenv("AI_ETL_PLANNER_THINKING", "2048"))
+    # ~/.bash_profile on EC2 exports LLM_DUAL_REVIEW=1 (second model reviews every answer): doubles
+    # cost/latency and can rewrite strict-JSON outputs. Off for generation unless explicitly requested.
+    if os.getenv("AI_ETL_DUAL_REVIEW", "0") != "1":
+        os.environ["LLM_DUAL_REVIEW"] = "0"
 
     client = RouterChatClient()
     logger.info("RouterChatClient mode=%s primary=%s dual_review=%s",

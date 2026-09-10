@@ -1,0 +1,67 @@
+{
+  "ok": true,
+  "attempts": [
+    {
+      "attempt": 1,
+      "returncode": 1,
+      "failed": 2,
+      "nodes": 31,
+      "failed_nodes": [
+        "model:fct_daily_price:error",
+        "model:fct_screener_metrics:error"
+      ]
+    },
+    {
+      "attempt": 2,
+      "returncode": 1,
+      "failed": 1,
+      "nodes": 31,
+      "failed_nodes": [
+        "model:fct_screener_metrics:error"
+      ]
+    },
+    {
+      "attempt": 3,
+      "returncode": 1,
+      "failed": 1,
+      "nodes": 31,
+      "failed_nodes": [
+        "model:fct_screener_metrics:error"
+      ]
+    },
+    {
+      "attempt": 4,
+      "returncode": 0,
+      "failed": 0,
+      "nodes": 31,
+      "failed_nodes": []
+    }
+  ],
+  "repairs": [
+    {
+      "attempt": 1,
+      "model": "fct_daily_price",
+      "trigger": "model.datapai.fct_daily_price",
+      "message": "Database Error in model fct_daily_price (models/stock/marts/fct_daily_price.sql)\n  001003 (42000): SQL compilation error:\n  syntax error line 79 at position 19 unexpected 'long'.\n  compiled code at target/run/datapai/models/stock/marts/fct_daily_price.sql"
+    },
+    {
+      "attempt": 1,
+      "model": "fct_screener_metrics",
+      "trigger": "model.datapai.fct_screener_metrics",
+      "message": "Database Error in model fct_screener_metrics (models/stock/marts/fct_screener_metrics.sql)\n  000904 (42000): SQL compilation error: error line 19 at position 8\n  invalid identifier 'SMA_10'\n  compiled code at target/run/datapai/models/stock/marts/fct_screener_metrics.sql"
+    },
+    {
+      "attempt": 2,
+      "model": "fct_screener_metrics",
+      "trigger": "model.datapai.fct_screener_metrics",
+      "error": "Extra data: line 2 column 1 (char 11280)"
+    },
+    {
+      "attempt": 3,
+      "model": "fct_screener_metrics",
+      "trigger": "model.datapai.fct_screener_metrics",
+      "message": "Database Error in model fct_screener_metrics (models/stock/marts/fct_screener_metrics.sql)\n  091385 (42601): SQL Compilation error:\n  Invalid time type scale specified for column 'COMPUTED_AT' with data type 'TIMESTAMP_NTZ(9)'. Please consult the Snowflake documentation for supported scales of TIME and TIMESTAMP types in Iceberg tables.\n  compiled code at target/run/datapai/models/stock/marts/fct_screener_metrics.sql"
+    }
+  ],
+  "final_failed": []
+}
