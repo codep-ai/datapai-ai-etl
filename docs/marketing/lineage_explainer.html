@@ -1,0 +1,260 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>DATAP.AI — column-level lineage on dbt, animated</title>
+<style>
+  /* Self-contained animated explainer. 24 s loop. White background for web + LinkedIn.
+     Freeze at a moment for frame capture: ?t=<seconds>  (e.g. lineage_explainer.html?t=9.5) */
+  :root { --ink:#1f2328; --muted:#6b7280; --line:#cfd6dd; --panel:#f6f8fa; --accent:#0969da;
+          --up:#d4700a; --pii:#cf222e; --ok:#1a7f37; --brand:#0b3d91; }
+  html,body { margin:0; background:#fff; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); }
+  .stage { width:1200px; height:675px; position:relative; overflow:hidden; background:#fff; }
+  svg { position:absolute; inset:0; }
+  text { font-family:inherit; }
+  .h { font-size:30px; font-weight:700; fill:var(--ink); }
+  .sub { font-size:17px; fill:var(--muted); }
+  .box { fill:var(--panel); stroke:var(--line); stroke-width:1.5; rx:8; }
+  .title { font-size:15px; font-weight:600; fill:var(--ink); }
+  .layer { font-size:11px; fill:var(--muted); }
+  .col { font-size:12.5px; fill:var(--ink); }
+  .edge { fill:none; stroke:#b6c2cf; stroke-width:1.6; }
+  .tedge { fill:none; stroke:#9aa7b4; stroke-width:2.2; }
+  .hl { stroke:var(--up); stroke-width:3; }
+  .pii { stroke:var(--pii); stroke-width:3; }
+  .badge { font-size:12px; font-weight:600; }
+  .chip { rx:10; }
+  .cap { font-size:20px; fill:var(--ink); font-weight:600; }
+  .cap2 { font-size:15px; fill:var(--muted); }
+  .brand { font-size:14px; font-weight:700; fill:var(--brand); letter-spacing:.5px; }
+
+  /* ── timeline (30 s): 5 scenes × 6 s ── */
+  @keyframes s1 { 0%,1%{opacity:0} 4%,18%{opacity:1} 20%,100%{opacity:0} }
+  @keyframes s2 { 0%,19%{opacity:0} 22%,38%{opacity:1} 40%,100%{opacity:0} }
+  @keyframes s3 { 0%,39%{opacity:0} 42%,58%{opacity:1} 60%,100%{opacity:0} }
+  @keyframes s4 { 0%,59%{opacity:0} 62%,78%{opacity:1} 80%,100%{opacity:0} }
+  @keyframes s5 { 0%,79%{opacity:0} 82%,98%{opacity:1} 100%{opacity:0} }
+  .scene { animation-duration:30s; animation-iteration-count:infinite; animation-timing-function:ease-in-out; }
+  .sc1 { animation-name:s1 } .sc2 { animation-name:s2 } .sc3 { animation-name:s3 } .sc4 { animation-name:s4 } .sc5 { animation-name:s5 }
+
+  /* draw-in for edges */
+  .draw { stroke-dasharray:600; stroke-dashoffset:600; animation:draw 30s infinite; }
+  @keyframes draw { 0%,23%{stroke-dashoffset:600} 32%,100%{stroke-dashoffset:0} }
+  .draw3 { stroke-dasharray:600; stroke-dashoffset:600; animation:draw3 30s infinite; }
+  @keyframes draw3 { 0%,43%{stroke-dashoffset:600} 51%,100%{stroke-dashoffset:0} }
+  .draw4 { stroke-dasharray:900; stroke-dashoffset:900; animation:draw4 30s infinite; }
+  @keyframes draw4 { 0%,63%{stroke-dashoffset:900} 72%,100%{stroke-dashoffset:0} }
+  .cursor { animation:cur 30s infinite; }
+  @keyframes cur { 0%,42%{transform:translate(0,0);opacity:0} 44%{opacity:1;transform:translate(0,0)} 48%,52%{transform:translate(-560px,-118px);opacity:1} 54%,100%{opacity:0} }
+  .fadein { animation:fin 30s infinite; } @keyframes fin { 0%,48%{opacity:0} 52%,58%{opacity:1} 60%,100%{opacity:0} }
+  .fadein4 { animation:fin4 30s infinite; } @keyframes fin4 { 0%,69%{opacity:0} 73%,78%{opacity:1} 80%,100%{opacity:0} }
+  .cursor5 { animation:cur5 30s infinite; }
+  @keyframes cur5 { 0%,82%{transform:translate(0,0);opacity:0} 84%{opacity:1;transform:translate(0,0)} 87%,89%{transform:translate(-330px,-140px);opacity:1} 90%,100%{opacity:0} }
+  .docwin { animation:docwin 30s infinite; transform-origin:600px 380px; }
+  @keyframes docwin { 0%,88%{opacity:0;transform:scale(.96)} 91%,98%{opacity:1;transform:scale(1)} 100%{opacity:0} }
+  .paused * { animation-play-state:paused !important; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+<svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg">
+  <!-- brand strip -->
+  <text x="40" y="640" class="brand">DATAP.AI · Data &amp; AI layer on the modern data stack · Iceberg core</text>
+  <text x="1160" y="640" text-anchor="end" class="sub" style="font-size:13px">dbt-core + sqlglot · deterministic · runs in your VPC</text>
+
+  <!-- ══ Scene 1: dbt docs, table-level only ══ -->
+  <g class="scene sc1">
+    <text x="40" y="62" class="h">dbt docs shows tables. It stops there.</text>
+    <text x="40" y="92" class="sub">dbt-core knows which model reads which model — never which column feeds which column.</text>
+    <!-- table DAG -->
+    <g transform="translate(60,170)">
+      <rect class="box" x="0" y="0" width="200" height="60"/><text x="14" y="26" class="title">source: prices</text><text x="14" y="46" class="layer">raw · Iceberg bronze</text>
+      <rect class="box" x="0" y="90" width="200" height="60"/><text x="14" y="116" class="title">source: fx_rates_daily</text><text x="14" y="136" class="layer">raw · Iceberg bronze</text>
+      <rect class="box" x="0" y="180" width="200" height="60"/><text x="14" y="206" class="title">source: exchange_ref</text><text x="14" y="226" class="layer">raw · Iceberg bronze</text>
+      <rect class="box" x="300" y="0" width="200" height="60"/><text x="314" y="26" class="title">stg_prices</text><text x="314" y="46" class="layer">staging</text>
+      <rect class="box" x="300" y="90" width="200" height="60"/><text x="314" y="116" class="title">stg_fx_rates</text><text x="314" y="136" class="layer">staging</text>
+      <rect class="box" x="300" y="180" width="200" height="60"/><text x="314" y="206" class="title">stg_exchange_ref</text><text x="314" y="226" class="layer">staging</text>
+      <rect class="box" x="600" y="90" width="220" height="60"/><text x="614" y="116" class="title">int_price_with_indicators</text><text x="614" y="136" class="layer">intermediate</text>
+      <rect class="box" x="920" y="90" width="200" height="60"/><text x="934" y="116" class="title">fct_daily_price</text><text x="934" y="136" class="layer">mart · Iceberg</text>
+      <path class="tedge" d="M200,30 C250,30 250,30 300,30"/><path class="tedge" d="M200,120 C250,120 250,120 300,120"/><path class="tedge" d="M200,210 C250,210 250,210 300,210"/>
+      <path class="tedge" d="M500,30 C560,30 540,120 600,120"/><path class="tedge" d="M500,120 C550,120 550,120 600,120"/><path class="tedge" d="M500,210 C560,210 540,120 600,120"/>
+      <path class="tedge" d="M820,120 C870,120 870,120 920,120"/>
+    </g>
+    <g transform="translate(60,470)">
+      <rect x="0" y="0" width="1080" height="70" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+      <text x="20" y="30" class="cap" style="fill:#9a3412">The regulator asks: “where did this number come from?”</text>
+      <text x="20" y="54" class="cap2">Table lineage cannot answer. dbt Cloud can — per seat, offshore. Catalog platforms can — if you adopt the platform.</text>
+    </g>
+  </g>
+
+  <!-- ══ Scene 2: columns appear ══ -->
+  <g class="scene sc2">
+    <text x="40" y="62" class="h">We open every model into its columns.</text>
+    <text x="40" y="92" class="sub">sqlglot parses the compiled SQL dbt already produced. No LLM. Same result every run.</text>
+    <g transform="translate(60,140)" id="colgraph">
+      <!-- sources -->
+      <rect class="box" x="0" y="0" width="210" height="110"/><text x="12" y="22" class="title">source: prices</text>
+      <text x="12" y="46" class="col">ticker</text><text x="12" y="66" class="col">trade_date</text><text x="12" y="86" class="col">close</text><text x="12" y="104" class="col">volume</text>
+      <rect class="box" x="0" y="130" width="210" height="70"/><text x="12" y="152" class="title">source: fx_rates_daily</text>
+      <text x="12" y="174" class="col">quote_currency</text><text x="12" y="192" class="col">rate</text>
+      <rect class="box" x="0" y="220" width="210" height="70"/><text x="12" y="242" class="title">source: exchange_ref</text>
+      <text x="12" y="264" class="col">exchange</text><text x="12" y="282" class="col">currency_code</text>
+      <!-- staging -->
+      <rect class="box" x="290" y="0" width="210" height="110"/><text x="302" y="22" class="title">stg_prices</text>
+      <text x="302" y="46" class="col">ticker</text><text x="302" y="66" class="col">trade_date</text><text x="302" y="86" class="col">close</text><text x="302" y="104" class="col">volume</text>
+      <rect class="box" x="290" y="130" width="210" height="70"/><text x="302" y="152" class="title">stg_fx_rates</text>
+      <text x="302" y="174" class="col">quote_currency</text><text x="302" y="192" class="col">rate</text>
+      <rect class="box" x="290" y="220" width="210" height="70"/><text x="302" y="242" class="title">stg_exchange_ref</text>
+      <text x="302" y="264" class="col">exchange</text><text x="302" y="282" class="col">currency_code</text>
+      <!-- intermediate -->
+      <rect class="box" x="580" y="60" width="240" height="130"/><text x="592" y="82" class="title">int_price_with_indicators</text>
+      <text x="592" y="106" class="col">ticker</text><text x="592" y="126" class="col">trade_date</text><text x="592" y="146" class="col">close</text><text x="592" y="166" class="col">close_usd</text><text x="592" y="184" class="col">sma_50</text>
+      <!-- mart -->
+      <rect class="box" x="900" y="60" width="220" height="110"/><text x="912" y="82" class="title">fct_daily_price</text>
+      <text x="912" y="106" class="col">ticker_key</text><text x="912" y="126" class="col">trade_date</text><text x="912" y="146" class="col">close</text><text x="912" y="166" class="col">close_usd</text>
+      <!-- column edges (passthrough) -->
+      <path class="edge draw" d="M210,42 C250,42 250,42 290,42"/><path class="edge draw" d="M210,62 C250,62 250,62 290,62"/><path class="edge draw" d="M210,82 C250,82 250,82 290,82"/><path class="edge draw" d="M210,100 C250,100 250,100 290,100"/>
+      <path class="edge draw" d="M210,170 C250,170 250,170 290,170"/><path class="edge draw" d="M210,188 C250,188 250,188 290,188"/>
+      <path class="edge draw" d="M210,260 C250,260 250,260 290,260"/><path class="edge draw" d="M210,278 C250,278 250,278 290,278"/>
+      <path class="edge draw" d="M500,42 C540,42 540,102 580,102"/><path class="edge draw" d="M500,62 C540,62 540,122 580,122"/><path class="edge draw" d="M500,82 C540,82 540,142 580,142"/>
+      <path class="edge draw" d="M500,82 C540,82 540,162 580,162"/><path class="edge draw" d="M500,62 C540,62 540,162 580,162"/><path class="edge draw" d="M500,188 C540,188 540,162 580,162"/><path class="edge draw" d="M500,278 C540,278 540,162 580,162"/>
+      <path class="edge draw" d="M820,122 C860,122 860,122 900,122"/><path class="edge draw" d="M820,142 C860,142 860,142 900,142"/><path class="edge draw" d="M820,162 C860,162 860,162 900,162"/>
+    </g>
+    <g transform="translate(60,470)">
+      <rect x="0" y="0" width="1080" height="70" rx="10" fill="#eef6ff" stroke="#9ecbff"/>
+      <text x="20" y="30" class="cap" style="fill:#0b3d91">Every output column → the exact upstream columns it was computed from.</text>
+      <text x="20" y="54" class="cap2">Stock demo: 11 models, 166 column edges. Whole dbt-demo project: 90 models, 903 edges. Works on any dbt project from manifest.json + catalog.json.</text>
+    </g>
+  </g>
+
+  <!-- ══ Scene 3: click close_usd, upstream path lights ══ -->
+  <g class="scene sc3">
+    <text x="40" y="62" class="h">Click one number. See its whole provenance.</text>
+    <text x="40" y="92" class="sub">fct_daily_price.close_usd = close × FX rate for that day, looked up by the exchange’s currency. Four raw columns, three tables, two layers.</text>
+    <g transform="translate(60,140)">
+      <!-- same graph, dimmed -->
+      <g opacity=".35">
+        <rect class="box" x="0" y="0" width="210" height="110"/><text x="12" y="22" class="title">source: prices</text><text x="12" y="46" class="col">ticker</text><text x="12" y="104" class="col">volume</text>
+        <rect class="box" x="0" y="130" width="210" height="70"/><text x="12" y="152" class="title">source: fx_rates_daily</text><text x="12" y="174" class="col">quote_currency</text>
+        <rect class="box" x="0" y="220" width="210" height="70"/><text x="12" y="242" class="title">source: exchange_ref</text><text x="12" y="264" class="col">exchange</text>
+        <rect class="box" x="290" y="0" width="210" height="110"/><text x="302" y="22" class="title">stg_prices</text><text x="302" y="46" class="col">ticker</text><text x="302" y="104" class="col">volume</text>
+        <rect class="box" x="290" y="130" width="210" height="70"/><text x="302" y="152" class="title">stg_fx_rates</text><text x="302" y="174" class="col">quote_currency</text>
+        <rect class="box" x="290" y="220" width="210" height="70"/><text x="302" y="242" class="title">stg_exchange_ref</text><text x="302" y="264" class="col">exchange</text>
+        <rect class="box" x="580" y="60" width="240" height="130"/><text x="592" y="82" class="title">int_price_with_indicators</text><text x="592" y="106" class="col">ticker</text><text x="592" y="126" class="col">trade_date</text><text x="592" y="146" class="col">close</text><text x="592" y="184" class="col">sma_50</text>
+        <rect class="box" x="900" y="60" width="220" height="110"/><text x="912" y="82" class="title">fct_daily_price</text><text x="912" y="106" class="col">ticker_key</text><text x="912" y="126" class="col">trade_date</text><text x="912" y="146" class="col">close</text>
+      </g>
+      <!-- highlighted columns -->
+      <rect x="2" y="52" width="206" height="18" rx="3" fill="#fff1e5"/><text x="12" y="66" class="col" style="font-weight:600">trade_date</text>
+      <rect x="2" y="72" width="206" height="18" rx="3" fill="#fff1e5"/><text x="12" y="86" class="col" style="font-weight:600">close</text>
+      <rect x="2" y="178" width="206" height="18" rx="3" fill="#fff1e5"/><text x="12" y="192" class="col" style="font-weight:600">rate</text>
+      <rect x="2" y="268" width="206" height="18" rx="3" fill="#fff1e5"/><text x="12" y="282" class="col" style="font-weight:600">currency_code</text>
+      <rect x="292" y="52" width="206" height="18" rx="3" fill="#fff1e5"/><text x="302" y="66" class="col" style="font-weight:600">trade_date</text>
+      <rect x="292" y="72" width="206" height="18" rx="3" fill="#fff1e5"/><text x="302" y="86" class="col" style="font-weight:600">close</text>
+      <rect x="292" y="178" width="206" height="18" rx="3" fill="#fff1e5"/><text x="302" y="192" class="col" style="font-weight:600">rate</text>
+      <rect x="292" y="268" width="206" height="18" rx="3" fill="#fff1e5"/><text x="302" y="282" class="col" style="font-weight:600">currency_code</text>
+      <rect x="582" y="152" width="236" height="18" rx="3" fill="#fff1e5"/><text x="592" y="166" class="col" style="font-weight:600">close_usd</text>
+      <rect x="902" y="152" width="216" height="18" rx="3" fill="#ddf4ff" stroke="var(--accent)"/><text x="912" y="166" class="col" style="font-weight:700">close_usd</text>
+      <!-- highlighted edges -->
+      <path class="edge hl draw3" d="M210,62 C250,62 250,62 290,62"/><path class="edge hl draw3" d="M210,82 C250,82 250,82 290,82"/>
+      <path class="edge hl draw3" d="M210,188 C250,188 250,188 290,188"/><path class="edge hl draw3" d="M210,278 C250,278 250,278 290,278"/>
+      <path class="edge hl draw3" d="M500,62 C540,62 540,162 580,162"/><path class="edge hl draw3" d="M500,82 C540,82 540,162 580,162"/>
+      <path class="edge hl draw3" d="M500,188 C540,188 540,162 580,162"/><path class="edge hl draw3" d="M500,278 C540,278 540,162 580,162"/>
+      <path class="edge hl draw3" d="M820,162 C860,162 860,162 900,162"/>
+      <!-- cursor -->
+      <g class="cursor" transform="translate(1000,300)"><path d="M0,0 L0,18 L5,13 L9,21 L12,20 L8,12 L14,12 Z" fill="#111" stroke="#fff" stroke-width="1.2"/></g>
+    </g>
+    <g transform="translate(60,470)" class="fadein">
+      <rect x="0" y="0" width="1080" height="70" rx="10" fill="#f0fdf4" stroke="#86efac"/>
+      <text x="20" y="30" class="cap" style="fill:#14532d">One click in the browser — or one SQL query on your own system table.</text>
+      <text x="20" y="54" class="cap2">Stored per run in your database. Written into dbt docs as column meta. Deep-linkable: dbt.datap.ai/assets/lineage.html#fct_daily_price.close_usd</text>
+    </g>
+  </g>
+
+  <!-- ══ Scene 4: PII propagation ══ -->
+  <g class="scene sc4">
+    <text x="40" y="62" class="h">Personal data is followed, not just found.</text>
+    <text x="40" y="92" class="sub">A scanner tags customer.email. Lineage shows every column derived from it — renamed, hashed, joined — and classifies them too.</text>
+    <g transform="translate(60,150)">
+      <rect class="box" x="0" y="40" width="220" height="110"/><text x="12" y="62" class="title">seed: customer</text>
+      <text x="12" y="86" class="col">customer_id</text>
+      <rect x="2" y="92" width="216" height="18" rx="3" fill="#fde8e8"/><text x="12" y="106" class="col" style="font-weight:600;fill:var(--pii)">email</text>
+      <rect x="2" y="112" width="216" height="18" rx="3" fill="#fde8e8"/><text x="12" y="126" class="col" style="font-weight:600;fill:var(--pii)">phone</text>
+      <text x="12" y="146" class="col">company</text>
+      <rect class="box" x="300" y="40" width="220" height="110"/><text x="312" y="62" class="title">stg_customer</text>
+      <text x="312" y="86" class="col">customer_id</text>
+      <rect x="302" y="92" width="216" height="18" rx="3" fill="#fde8e8"/><text x="312" y="106" class="col" style="font-weight:600;fill:var(--pii)">customer_email</text>
+      <rect x="302" y="112" width="216" height="18" rx="3" fill="#fde8e8"/><text x="312" y="126" class="col" style="font-weight:600;fill:var(--pii)">customer_phone</text>
+      <text x="312" y="146" class="col">customer_company</text>
+      <rect class="box" x="600" y="40" width="220" height="110"/><text x="612" y="62" class="title">dim_customer</text>
+      <text x="612" y="86" class="col">customer_key</text>
+      <rect x="602" y="92" width="216" height="18" rx="3" fill="#fde8e8"/><text x="612" y="106" class="col" style="font-weight:600;fill:var(--pii)">customer_email</text>
+      <rect x="602" y="112" width="216" height="18" rx="3" fill="#fde8e8"/><text x="612" y="126" class="col" style="font-weight:600;fill:var(--pii)">customer_phone</text>
+      <text x="612" y="146" class="col">customer_company</text>
+      <rect class="box" x="900" y="40" width="220" height="110"/><text x="912" y="62" class="title">obt_invoice</text>
+      <text x="912" y="86" class="col">invoice_total</text>
+      <rect x="902" y="92" width="216" height="18" rx="3" fill="#fde8e8"/><text x="912" y="106" class="col" style="font-weight:600;fill:var(--pii)">customer_email</text>
+      <rect x="902" y="112" width="216" height="18" rx="3" fill="#fde8e8"/><text x="912" y="126" class="col" style="font-weight:600;fill:var(--pii)">customer_phone</text>
+      <text x="912" y="146" class="col">invoice_date</text>
+      <path class="edge pii draw4" d="M220,102 C260,102 260,102 300,102"/><path class="edge pii draw4" d="M220,122 C260,122 260,122 300,122"/>
+      <path class="edge pii draw4" d="M520,102 C560,102 560,102 600,102"/><path class="edge pii draw4" d="M520,122 C560,122 560,122 600,122"/>
+      <path class="edge pii draw4" d="M820,102 C860,102 860,102 900,102"/><path class="edge pii draw4" d="M820,122 C860,122 860,122 900,122"/>
+      <!-- badges -->
+      <g class="fadein4">
+        <rect x="0" y="180" width="1120" height="26" rx="6" fill="#fff"/>
+        <rect x="0" y="180" width="118" height="24" rx="12" fill="#fde8e8" stroke="#f5b5b5"/><text x="14" y="197" class="badge" style="fill:var(--pii)">PII_MEDIUM ×6</text>
+        <rect x="128" y="180" width="180" height="24" rx="12" fill="#eef6ff" stroke="#9ecbff"/><text x="142" y="197" class="badge" style="fill:var(--accent)">masking: hash (configurable)</text>
+        <rect x="318" y="180" width="240" height="24" rx="12" fill="#f0fdf4" stroke="#86efac"/><text x="332" y="197" class="badge" style="fill:var(--ok)">AI guardrail: reads the same metadata</text>
+        <rect x="568" y="180" width="300" height="24" rx="12" fill="#f6f8fa" stroke="var(--line)"/><text x="582" y="197" class="badge" style="fill:var(--muted)">Default: classify, don’t block — until you decide</text>
+      </g>
+    </g>
+    <g transform="translate(60,470)" class="fadein4">
+      <rect x="0" y="0" width="1080" height="70" rx="10" fill="#f6f8fa" stroke="var(--line)"/>
+      <text x="20" y="30" class="cap">Lineage · PII · quality tests — generated on every build, stored in your account, in Australia.</text>
+      <text x="20" y="54" class="cap2">Iceberg you own · dbt you already run · engines you choose · models you choose · evidence for APRA, ASIC, AUSTRAC, Privacy Act.</text>
+    </g>
+  </g>
+
+  <!-- ══ Scene 5: round trip to dbt docs ══ -->
+  <g class="scene sc5">
+    <text x="40" y="62" class="h">One product with dbt docs, not a tool beside it.</text>
+    <text x="40" y="92" class="sub">Click any table or URL in the lineage view → its dbt documentation page opens. Every dbt page has a “Column lineage ⇢” button back.</text>
+    <!-- mini lineage graph -->
+    <g transform="translate(60,130)">
+      <rect class="box" x="0" y="0" width="230" height="90"/><text x="12" y="22" class="title" style="fill:var(--accent);text-decoration:underline">fct_daily_price</text><text x="218" y="22" text-anchor="end" style="font-size:11px;fill:var(--accent)">graph · docs ↗</text>
+      <text x="12" y="46" class="col">ticker_key</text><text x="12" y="66" class="col">close_usd</text><text x="12" y="84" class="col">volume</text>
+      <rect class="box" x="0" y="110" width="230" height="70"/><text x="12" y="132" class="title" style="fill:var(--accent);text-decoration:underline">int_price_with_indicators</text><text x="218" y="132" text-anchor="end" style="font-size:11px;fill:var(--accent)">graph · docs ↗</text>
+      <text x="12" y="156" class="col">close_usd</text><text x="12" y="174" class="col">sma_50</text>
+      <g class="cursor5" transform="translate(460,240)"><path d="M0,0 L0,18 L5,13 L9,21 L12,20 L8,12 L14,12 Z" fill="#111" stroke="#fff" stroke-width="1.2"/></g>
+    </g>
+    <!-- dbt docs window -->
+    <g class="docwin" transform="translate(340,130)">
+      <rect x="0" y="0" width="800" height="320" rx="10" fill="#fff" stroke="var(--line)" stroke-width="1.5"/>
+      <rect x="0" y="0" width="800" height="34" rx="10" fill="#f6f8fa"/><rect x="0" y="20" width="800" height="14" fill="#f6f8fa"/>
+      <circle cx="18" cy="17" r="5" fill="#fd6b60"/><circle cx="36" cy="17" r="5" fill="#fdbd2e"/><circle cx="54" cy="17" r="5" fill="#33c748"/>
+      <rect x="80" y="8" width="600" height="18" rx="9" fill="#fff" stroke="var(--line)"/><text x="92" y="21" style="font-size:11px;fill:var(--muted)">dbt.datap.ai/#!/model/model.datapai.fct_daily_price</text>
+      <text x="24" y="66" style="font-size:18px;font-weight:700">fct_daily_price</text><text x="24" y="86" style="font-size:12px;fill:var(--muted)">model · STOCK_MARTS · Iceberg · tags: fact, stock_ai</text>
+      <text x="24" y="118" style="font-size:13px;font-weight:600">Columns</text>
+      <rect x="24" y="128" width="752" height="1" fill="var(--line)"/>
+      <text x="24" y="150" style="font-size:12.5px">close_usd</text><text x="200" y="150" style="font-size:12px;fill:var(--muted)">FLOAT</text><text x="300" y="150" style="font-size:12px;fill:var(--muted)">The closing price in USD.</text>
+      <rect x="300" y="160" width="440" height="58" rx="6" fill="#f6f8fa" stroke="var(--line)"/>
+      <text x="312" y="178" style="font-size:11.5px;font-family:Menlo,monospace;fill:var(--ink)">meta:</text>
+      <text x="312" y="194" style="font-size:11.5px;font-family:Menlo,monospace;fill:var(--ink)">  lineage: [int_price_with_indicators.close_usd]</text>
+      <text x="312" y="210" style="font-size:11.5px;font-family:Menlo,monospace;fill:var(--ink)">  sensitivity: PUBLIC</text>
+      <rect x="24" y="264" width="150" height="30" rx="6" fill="var(--accent)"/><text x="99" y="284" text-anchor="middle" style="font-size:12.5px;fill:#fff;font-weight:600">Column lineage ⇢</text>
+      <text x="190" y="284" style="font-size:12px;fill:var(--muted)">← injected into every dbt docs page, deep-links back to this model</text>
+    </g>
+    <g transform="translate(60,470)">
+      <rect x="0" y="0" width="1080" height="70" rx="10" fill="#eef6ff" stroke="#9ecbff"/>
+      <text x="20" y="30" class="cap" style="fill:#0b3d91">Same manifest, same URL, two views. Nothing to install beside dbt docs.</text>
+      <text x="20" y="54" class="cap2">Lineage written into dbt YAML as column meta → visible in dbt docs, Lightdash, Elementary, any catalog. System of record: your Postgres.</text>
+    </g>
+  </g>
+</svg>
+</div>
+<script>
+  // ?t=<seconds> freezes the animation at that moment (for frame capture / GIF rendering)
+  const t = parseFloat(new URLSearchParams(location.search).get('t'));
+  if (!isNaN(t)) { document.querySelectorAll('*').forEach(el => { el.style.animationDelay = (-t) + 's'; }); document.getElementById('stage').classList.add('paused'); }
+</script>
+</body>
+</html>
