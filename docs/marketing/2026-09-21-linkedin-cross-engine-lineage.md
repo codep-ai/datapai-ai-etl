@@ -1,25 +1,30 @@
-# LinkedIn post draft — cross-engine column lineage (short, claim-safe)
+# LinkedIn post draft — decouple data from the engine (data sovereignty), claim-safe
 
-**Author:** Donny Zhao · **Visual:** `datapai-platform-be/docs/demo/2026-09-21-cross-engine-lineage-3-engines.png` · **Length:** ~170 words
+**Author:** Donny Zhao · **Visual:** `datapai-platform-be/docs/demo/2026-09-21-cross-engine-lineage-3-engines.png` · **Length:** ~210 words
 **Link (first comment, once published):** the 3-minute note, which links to the full engineering note and the live lineage.
 
 ---
 
-Data teams are often advised to standardise on one engine. We wanted to see how far the alternative goes, so we built it on our own demo environment.
+A business wants to own its data and treat engines as replaceable. That is what data sovereignty means in practice: decouple the data from the engine.
 
-One dbt-core project. Shared tables stored once on Apache Iceberg. Produced on Athena, consumed on Snowflake and on Databricks in another cloud. No table data copied between engines.
+Open table formats got us halfway. The files are now free of the engine. The governance is not. Lineage, quality evidence and ownership still live inside each engine, so the audit trail stops at every engine boundary, exactly where an auditor looks hardest.
 
-The part we cared about most: column-level lineage that continues across the engine boundary. In this project, 75 column edges, 46 of them crossing from one engine to another, none unresolved. Click a column on Databricks and follow it back through a Snowflake mart and the Athena producer to the raw source.
+That second half is what we build at DATAP.AI: a layer that carries governance across engines.
 
-Three things we learned the hard way are in the note — including a table that built successfully, passed its tests, and held zero rows.
+We proved it on our own demo environment. One dbt-core project. Shared tables stored once on Apache Iceberg. Produced on Athena, consumed on Snowflake and on Databricks in another cloud. No table data copied between engines. And one column-level lineage across all three: in this project, 46 column edges cross an engine boundary, none unresolved, held in our own tables and queryable in SQL.
 
-It is a demonstration on sample data, not a benchmark and not a production reference. What it shows is that the approach works end to end.
+Next, the same idea for AI: models you choose, in your own cloud, answering only from data whose lineage you hold.
+
+It is a demonstration on sample data, not a benchmark and not a production reference. The note includes what broke.
 
 #dataengineering #apacheiceberg #dbt #datalineage #datagovernance
 
 ---
 
 ## Claims checklist applied (keep for any edit)
+- Value is stated as: the pain, where standard tooling stopped IN OUR BUILD, and what we added. Never as what another vendor "cannot" do.
+- AI sovereignty is described as what comes next, not as part of this demonstration.
+- Not claimed, because not built across engines: carrying personal-data flags across the boundary; moving a live model between engines with a parity proof.
 - Scoped to "our own demo environment" / "in this project"; no universal statements about how products behave.
 - No timings, no cost figures, no comparison of vendors, nothing that reads as a benchmark.
 - No statement that a vendor's product "cannot" do something; where a route was unavailable we say what the documentation listed when we built it.
