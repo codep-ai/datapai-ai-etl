@@ -1,0 +1,313 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>platform.datap.ai — Databricks · dbt · Spark SQL → GenAI → agentic AI</title>
+<style>
+  /* PORTFOLIO piece (recruiter-facing, Principal Data Engineer conversation). 20 s loop, 4 scenes × 5 s, inside the
+     platform.datap.ai console frame: the left menu mirrors datapai-platform-menu/lib/menu.ts and the active item lights per scene.
+     Everything shown has run (2026-09-22/24 builds): the Azure Databricks dbt project (PASS 92/92), the stitched lineage
+     (12 tables · 75 columns · 46 cross-engine edges; real table/column names from lineage_xengine_mesh.json), the Text-to-SQL
+     answer on Databricks, the AG2 agent roster. No PySpark job has run in this stack, so scene 1 says "Spark SQL".
+     Freeze a moment for frame capture: ?t=<seconds>   Companion GIF: portfolio_databricks_dbt_ai.gif */
+  :root { --ink:#1f2328; --muted:#6b7280; --line:#cfd6dd; --panel:#f6f8fa; --accent:#0969da;
+          --dbx:#ff3621; --dbt:#ff694b; --ath:#7c3aed; --snow:#0284c7; --ok:#1a7f37; --ai:#7c3aed; --brand:#0b3d91; --side:#0f172a; }
+  html,body { margin:0; background:#fff; font-family:-apple-system,"Segoe UI",Roboto,Helvetica,Arial,sans-serif; color:var(--ink); }
+  html,body { width:100%; height:100%; overflow:hidden; }
+  .stage { width:1200px; height:675px; position:relative; overflow:hidden; background:#fff; transform-origin:0 0; }
+  svg { position:absolute; inset:0; } text { font-family:inherit; }
+  .h { font-size:27px; font-weight:800; fill:var(--ink); letter-spacing:-.3px; }
+  .sub { font-size:14.5px; fill:var(--muted); }
+  .box { fill:var(--panel); stroke:var(--line); stroke-width:1.5; rx:8; }
+  .title { font-size:14px; font-weight:700; fill:var(--ink); }
+  .col { font-size:12.5px; fill:var(--ink); }
+  .mono { font-family:"SF Mono",Menlo,Consolas,monospace; font-size:12px; fill:var(--ink); }
+  .edge { fill:none; stroke:#b6c2cf; stroke-width:1.8; }
+  .cap { font-size:17px; fill:var(--ink); font-weight:700; } .cap2 { font-size:13.5px; fill:var(--muted); }
+  .badge { font-size:12px; font-weight:600; }
+  .step { font-size:12.5px; font-weight:700; fill:#fff; }
+  /* sidebar */
+  .sb-brand { font-size:17px; font-weight:800; fill:#fff; letter-spacing:.4px; }
+  .sb-url { font-size:11px; fill:#94a3b8; }
+  .sb-grp { font-size:10.5px; font-weight:700; fill:#7dd3fc; letter-spacing:.8px; }
+  .sb-it { font-size:12.5px; fill:#cbd5e1; }
+  .sb-hl { fill:#1d4ed8; opacity:0; rx:6; }
+
+  /* scenes: A 0–5  B 5–10  C 10–15  D 15–20  (percent of 20 s) */
+  .scene { animation-duration:20s; animation-iteration-count:infinite; animation-timing-function:ease-in-out; }
+  @keyframes sA { 0%{opacity:0} 2%,23%{opacity:1} 25%,100%{opacity:0} }
+  @keyframes sB { 0%,24%{opacity:0} 27%,48%{opacity:1} 50%,100%{opacity:0} }
+  @keyframes sC { 0%,49%{opacity:0} 52%,73%{opacity:1} 75%,100%{opacity:0} }
+  @keyframes sD { 0%,74%{opacity:0} 77%,98%{opacity:1} 100%{opacity:0} }
+  .scA{animation-name:sA} .scB{animation-name:sB} .scC{animation-name:sC} .scD{animation-name:sD}
+  .k { animation-duration:20s; animation-iteration-count:infinite; animation-timing-function:ease-out; }
+  /* sidebar highlights follow the scenes */
+  .hlA{animation:sA 20s infinite ease-in-out} .hlB{animation:sB 20s infinite ease-in-out} .hlC{animation:sC 20s infinite ease-in-out} .hlD{animation:sD 20s infinite ease-in-out}
+
+  /* A: layers rise 0.4 → 2.6 s, badges 3 s */
+  @keyframes a1 { 0%,2%{opacity:0;translate:0 14px} 5%,100%{opacity:1;translate:0 0} }
+  @keyframes a2 { 0%,6%{opacity:0;translate:0 14px} 9%,100%{opacity:1;translate:0 0} }
+  @keyframes a3 { 0%,10%{opacity:0;translate:0 14px} 13%,100%{opacity:1;translate:0 0} }
+  @keyframes a4 { 0%,14%{opacity:0} 17%,100%{opacity:1} }
+  .a1{animation-name:a1} .a2{animation-name:a2} .a3{animation-name:a3} .a4{animation-name:a4}
+  /* B: dbt boxes 5.4 s, edges draw 6.0 → 8.2 s, counts 8.6 s */
+  @keyframes b1 { 0%,27%{opacity:0} 30%,100%{opacity:1} }
+  .b1{animation-name:b1}
+  .drawB { stroke-dasharray:600; stroke-dashoffset:600; animation:drawB 20s infinite linear; }
+  @keyframes drawB { 0%,30%{stroke-dashoffset:600} 41%,100%{stroke-dashoffset:0} }
+  @keyframes b2 { 0%,42%{opacity:0} 45%,100%{opacity:1} }
+  .b2{animation-name:b2}
+  /* C: question types 10.4 s, SQL 11.6 s, result 13.0 s */
+  @keyframes c1 { 0%,52%{width:0} 58%,100%{width:520px} }
+  .typeC { animation:c1 20s infinite steps(40,end); overflow:hidden; white-space:nowrap; }
+  @keyframes c2 { 0%,58%{opacity:0;translate:0 8px} 61%,100%{opacity:1;translate:0 0} }
+  @keyframes c3 { 0%,65%{opacity:0;translate:0 8px} 68%,100%{opacity:1;translate:0 0} }
+  .c2{animation-name:c2} .c3{animation-name:c3}
+  /* D: agents light in turn 15.5 → 18 s, gate 18.5 s */
+  @keyframes d1 { 0%,77%{opacity:.25} 79%,100%{opacity:1} }
+  @keyframes d2 { 0%,80%{opacity:.25} 82%,100%{opacity:1} }
+  @keyframes d3 { 0%,83%{opacity:.25} 85%,100%{opacity:1} }
+  @keyframes d4 { 0%,86%{opacity:.25} 88%,100%{opacity:1} }
+  @keyframes d5 { 0%,89%{opacity:.25} 91%,100%{opacity:1} }
+  @keyframes d6 { 0%,92%{opacity:0} 94%,100%{opacity:1} }
+  .d1{animation-name:d1} .d2{animation-name:d2} .d3{animation-name:d3} .d4{animation-name:d4} .d5{animation-name:d5} .d6{animation-name:d6}
+  /* pointer: sits on the active menu item, moves during the last 0.4 s of each scene, clicks at scene start */
+  .cur { animation:cur 20s infinite ease-in-out; }
+  @keyframes cur { 0%,22%{transform:translate(120px,439px)} 24%,47%{transform:translate(120px,255px)} 49%,72%{transform:translate(120px,143px)} 74%,97%{transform:translate(120px,167px)} 99%,100%{transform:translate(120px,439px)} }
+  .click { animation:click 20s infinite ease-out; transform-origin:center; }
+  @keyframes click { 0%,1.5%{opacity:0;transform:scale(.4)} 2.5%{opacity:.9;transform:scale(1)} 5%,26.5%{opacity:0;transform:scale(1.6)} 27.5%{opacity:.9;transform:scale(1)} 30%,51.5%{opacity:0;transform:scale(1.6)} 52.5%{opacity:.9;transform:scale(1)} 55%,76.5%{opacity:0;transform:scale(1.6)} 77.5%{opacity:.9;transform:scale(1)} 80%,100%{opacity:0;transform:scale(1.6)} }
+  .paused * { animation-play-state:paused !important; }
+</style>
+</head>
+<body>
+<div class="stage" id="stage">
+<svg viewBox="0 0 1200 675" xmlns="http://www.w3.org/2000/svg">
+
+  <!-- ══ Console frame: top bar + left menu (platform.datap.ai) ══ -->
+  <rect x="0" y="0" width="1200" height="675" fill="#fff"/>
+  <rect x="0" y="0" width="1200" height="34" fill="#f6f8fa"/><line x1="0" y1="34" x2="1200" y2="34" stroke="var(--line)"/>
+  <circle cx="18" cy="17" r="5" fill="#fca5a5"/><circle cx="36" cy="17" r="5" fill="#fcd34d"/><circle cx="54" cy="17" r="5" fill="#86efac"/>
+  <rect x="300" y="8" width="600" height="18" rx="9" fill="#fff" stroke="var(--line)"/><text x="600" y="21" text-anchor="middle" style="font-size:11.5px;fill:var(--muted)">https://platform.datap.ai</text>
+
+  <g transform="translate(0,34)">
+    <rect x="0" y="0" width="236" height="641" fill="var(--side)"/>
+    <text x="18" y="34" class="sb-brand">DATAP.AI</text><text x="18" y="52" class="sb-url">platform.datap.ai · one console</text>
+
+    <text x="18" y="88" class="sb-grp">FOUR INTELLIGENCES</text>
+    <rect class="sb-hl hlC" x="10" y="98" width="216" height="22"/><text x="18" y="114" class="sb-it">AI  ›  Text-to-SQL</text>
+    <rect class="sb-hl hlD" x="10" y="122" width="216" height="22"/><text x="18" y="138" class="sb-it">AI  ›  AI Agent Hub</text>
+    <text x="18" y="162" class="sb-it" style="fill:#94a3b8">BI  ·  CI  ·  DI  (Airflow, dbt, Airbyte)</text>
+
+    <text x="18" y="200" class="sb-grp">GOVERNANCE</text>
+    <rect class="sb-hl hlB" x="10" y="210" width="216" height="22"/><text x="18" y="226" class="sb-it">Cross-engine lineage</text>
+    <rect class="sb-hl hlB" x="10" y="234" width="216" height="22"/><text x="18" y="250" class="sb-it">Column lineage (dbt)</text>
+    <rect class="sb-hl hlD" x="10" y="258" width="216" height="22"/><text x="18" y="274" class="sb-it">AI governance gate</text>
+    <rect class="sb-hl hlD" x="10" y="282" width="216" height="22"/><text x="18" y="298" class="sb-it">HITL approvals</text>
+
+    <text x="18" y="336" class="sb-grp">QUERY ENGINES</text>
+    <text x="18" y="362" class="sb-it">Athena (AWS)</text>
+    <rect class="sb-hl hlB" x="10" y="370" width="216" height="22"/><text x="18" y="386" class="sb-it">Snowflake</text>
+    <rect class="sb-hl hlA" x="10" y="394" width="216" height="22"/><rect class="sb-hl hlB" x="10" y="394" width="216" height="22"/><rect class="sb-hl hlC" x="10" y="394" width="216" height="22"/><text x="18" y="410" class="sb-it">Databricks (Azure)</text>
+    <text x="18" y="434" class="sb-it" style="fill:#94a3b8">BigQuery · Redshift · ClickHouse</text>
+
+    <text x="18" y="472" class="sb-grp">CATALOGS</text>
+    <rect class="sb-hl hlA" x="10" y="482" width="216" height="22"/><text x="18" y="498" class="sb-it">Glue Catalog (AWS)</text>
+    <rect class="sb-hl hlA" x="10" y="506" width="216" height="22"/><text x="18" y="522" class="sb-it">Unity Catalog (Azure)</text>
+
+    <text x="18" y="560" class="sb-grp">DATA STORAGE</text>
+    <rect class="sb-hl hlA" x="10" y="570" width="216" height="22"/><text x="18" y="586" class="sb-it">S3 · Iceberg (AWS)</text>
+    <text x="18" y="610" class="sb-it">ADLS · Iceberg (Azure)</text>
+  </g>
+
+  <text x="262" y="662" style="font-size:12px;font-weight:700;fill:var(--brand)">Donny Zhao · built and run on datap.ai, 2026 · Databricks (Azure) · dbt-core · Spark SQL · Iceberg · GenAI · agentic AI</text>
+
+  <!-- ══ Content area: x 262 → 1180 (width 918) ══ -->
+  <!-- ══ Scene A: the platform ══ -->
+  <g class="scene scA" transform="translate(262,0)">
+    <text x="0" y="74" class="h">1 · The platform: open storage, one catalog, Databricks on top</text>
+    <text x="0" y="98" class="sub">Data stays the customer's asset in their storage. Databricks is the engine; the same dbt models also ran on Athena and Snowflake.</text>
+
+    <g class="k a1" transform="translate(0,530)">
+      <rect class="box" x="0" y="0" width="918" height="64"/>
+      <rect x="0" y="0" width="140" height="64" rx="8" fill="#0b3d91"/><text x="14" y="30" class="step">STORAGE +</text><text x="14" y="46" class="step">CATALOG</text>
+      <text x="158" y="27" class="title">Apache Iceberg tables in the customer's own storage (S3 today; ADLS Gen2 in the design)</text>
+      <text x="158" y="49" class="col">Catalogs: Glue (AWS) · Unity Catalog (Azure). One physical table, seen by three catalogs, no copy per engine.</text>
+    </g>
+    <g class="k a2" transform="translate(0,368)">
+      <rect class="box" x="0" y="0" width="918" height="146"/>
+      <rect x="0" y="0" width="140" height="146" rx="8" fill="var(--dbx)"/><text x="14" y="34" class="step">TRANSFORM</text><text x="14" y="56" class="step" style="font-weight:600;opacity:.9">Databricks · dbt</text><text x="14" y="76" class="step" style="font-weight:600;opacity:.9">Spark SQL</text>
+      <text x="158" y="27" class="title">dbt-core on Azure Databricks · SQL warehouse · Unity Catalog</text>
+      <text x="158" y="50" class="mono">chinook_staging (11 views) → chinook_core (dim_customer, dim_track, fct_invoice …) → chinook_marts</text>
+      <text x="158" y="71" class="mono">dbt build · PASS 92 / 92 · docs generated · Snowflake dialect rewritten as Spark SQL (explode(sequence(...)))</text>
+      <text x="158" y="99" class="col">Second Databricks project: ML feature marts of a stock estate (8.1M rows, 84 tickers) reading the same Iceberg copy</text>
+      <text x="158" y="117" class="col">that the Athena producer writes. Three repositories, one estate file, one lineage.</text>
+      <text x="158" y="137" class="mono" style="fill:var(--muted)">github.com/codep-ai: chinook-dbt-databricks · xengine-producer-stock · xengine-consumer-analytics · -ml</text>
+    </g>
+    <g class="k a3" transform="translate(0,282)">
+      <rect class="box" x="0" y="0" width="918" height="70"/>
+      <rect x="0" y="0" width="140" height="70" rx="8" fill="#374151"/><text x="14" y="41" class="step">SERVE</text>
+      <text x="158" y="27" class="title">Airflow (38 DAGs) · Lightdash BI on the Databricks warehouse · Text-to-SQL · column lineage</text>
+      <text x="158" y="50" class="col">All from this console. Engines, catalogs and storage are menu entries, not the architecture.</text>
+    </g>
+    <g class="k a4" transform="translate(0,124)">
+      <rect x="0" y="0" width="212" height="26" rx="13" fill="#fff1ee" stroke="#ffb4a3"/><text x="14" y="18" class="badge" style="fill:var(--dbx)">Azure Databricks · Unity Catalog</text>
+      <rect x="222" y="0" width="140" height="26" rx="13" fill="#fff4f1" stroke="#ffc2b3"/><text x="236" y="18" class="badge" style="fill:var(--dbt)">dbt-core · 22 models</text>
+      <rect x="372" y="0" width="200" height="26" rx="13" fill="#f3f0ff" stroke="#c4b5fd"/><text x="386" y="18" class="badge" style="fill:var(--ai)">Spark SQL via dbt-databricks</text>
+      <rect x="582" y="0" width="150" height="26" rx="13" fill="#f0fdf4" stroke="#86efac"/><text x="596" y="18" class="badge" style="fill:var(--ok)">Iceberg · open format</text>
+      <rect x="742" y="0" width="176" height="26" rx="13" fill="#f6f8fa" stroke="var(--line)"/><text x="756" y="18" class="badge" style="fill:var(--muted)">Also on Athena + Snowflake</text>
+    </g>
+    <g class="k a4" transform="translate(0,178)">
+      <text x="0" y="0" class="cap" style="font-size:15px">Why this shape: the engine is a choice per team; the data, the models and the lineage are the shared asset.</text>
+      <text x="0" y="22" class="cap2">Storage → transform → serve, read bottom-up. Every box below has run in the estate; the counts are from the 22–24 Sep builds.</text>
+    </g>
+  </g>
+
+  <!-- ══ Scene B: dbt column lineage across Snowflake and Databricks ══ -->
+  <g class="scene scB" transform="translate(262,0)">
+    <text x="0" y="74" class="h">2 · dbt column lineage across engines: Snowflake → Databricks</text>
+    <text x="0" y="98" class="sub">dbt docs stops at each project's boundary. This stitches three dbt manifests by physical table identity, so lineage crosses engines and repos.</text>
+
+    <g transform="translate(0,118)">
+      <!-- lanes -->
+      <rect x="0" y="0" width="286" height="330" rx="10" fill="#faf7ff" stroke="#e9e1ff"/><text x="14" y="24" class="title" style="fill:var(--ath)">Athena (AWS) · dbt producer</text><text x="14" y="42" class="mono" style="fill:var(--muted)">repo xengine-producer-stock</text>
+      <rect x="316" y="0" width="286" height="330" rx="10" fill="#f2fbfe" stroke="#cdeefb"/><text x="330" y="24" class="title" style="fill:var(--snow)">Snowflake · dbt consumer</text><text x="330" y="42" class="mono" style="fill:var(--muted)">repo xengine-consumer-analytics</text>
+      <rect x="632" y="0" width="286" height="330" rx="10" fill="#fff5f3" stroke="#ffd6cf"/><text x="646" y="24" class="title" style="fill:var(--dbx)">Databricks (Azure) · dbt consumer</text><text x="646" y="42" class="mono" style="fill:var(--muted)">repo xengine-consumer-ml</text>
+
+      <!-- dbt models (real names + columns from the 22 Sep mesh run) -->
+      <g class="k b1" transform="translate(14,58)"><rect class="box" width="258" height="150"/><rect width="258" height="24" rx="8" fill="#ede9fe"/><text x="10" y="17" class="title" style="font-size:12.5px">model · common_price_daily</text>
+        <text x="10" y="46" class="mono">ticker</text><text x="10" y="66" class="mono">exchange</text><text x="10" y="86" class="mono">trade_date</text><text x="10" y="106" class="mono">currency_code</text><text x="10" y="126" class="mono">close</text><text x="10" y="144" class="mono">units_per_usd</text></g>
+      <g class="k b1" transform="translate(14,222)"><rect class="box" width="258" height="94"/><text x="10" y="20" class="title" style="font-size:12.5px">source · Raw Iceberg (Glue-managed)</text><text x="10" y="42" class="mono">stock_iceberg.prices · 8.5M rows</text><text x="10" y="62" class="mono">exchange_ref · fx_rates_daily</text><text x="10" y="82" class="mono">ticker_universe</text></g>
+
+      <g class="k b1" transform="translate(330,58)"><rect class="box" width="258" height="150"/><rect width="258" height="24" rx="8" fill="#e0f2fe"/><text x="10" y="17" class="title" style="font-size:12.5px">model · mart_price_monthly_usd</text>
+        <text x="10" y="46" class="mono">ticker</text><text x="10" y="66" class="mono">exchange</text><text x="10" y="86" class="mono">month_start</text><text x="10" y="106" class="mono">currency_code</text><text x="10" y="126" class="mono">company_name · sector</text><text x="10" y="144" class="mono">avg_close_usd</text></g>
+      <g class="k b1" transform="translate(330,222)"><rect class="box" width="258" height="94"/><text x="10" y="20" class="title" style="font-size:12.5px">reads the Iceberg tables in place</text><text x="10" y="42" class="mono">Glue-synced external tables</text><text x="10" y="62" class="mono">reader grants · no copy</text><text x="10" y="82" class="mono">391,271 mart rows</text></g>
+
+      <g class="k b1" transform="translate(646,58)"><rect class="box" width="258" height="150"/><rect width="258" height="24" rx="8" fill="#ffe4de"/><text x="10" y="17" class="title" style="font-size:12.5px">model · feat_exchange_monthly</text>
+        <text x="10" y="46" class="mono">exchange</text><text x="10" y="66" class="mono">currency_code</text><text x="10" y="86" class="mono">month_start</text><text x="10" y="106" class="mono">tickers</text><text x="10" y="126" class="mono">avg_close_usd</text><text x="10" y="144" class="mono">total_volume</text></g>
+      <g class="k b1" transform="translate(646,222)"><rect class="box" width="258" height="94"/><text x="10" y="20" class="title" style="font-size:12.5px">model · feat_price_momentum</text><text x="10" y="42" class="mono">ticker · exchange · sector</text><text x="10" y="62" class="mono">trade_date · close_usd</text><text x="10" y="82" class="mono">8,085,051 rows · Unity Catalog</text></g>
+
+      <!-- column edges Athena → Snowflake -->
+      <path class="edge drawB" style="stroke:var(--ath)" d="M272,104 C300,104 300,104 330,104"/>
+      <path class="edge drawB" style="stroke:var(--ath)" d="M272,124 C300,124 300,124 330,124"/>
+      <path class="edge drawB" style="stroke:var(--ath)" d="M272,144 C300,144 300,144 330,144"/>
+      <path class="edge drawB" style="stroke:var(--ath)" d="M272,164 C300,164 300,164 330,164"/>
+      <path class="edge drawB" style="stroke:var(--ath)" d="M272,184 C300,184 300,200 330,200"/>
+      <!-- column edges Snowflake → Databricks (the dbt-across-engines hop) -->
+      <path class="edge drawB" style="stroke:var(--snow);stroke-width:2.4" d="M588,124 C616,124 616,104 646,104"/>
+      <path class="edge drawB" style="stroke:var(--snow);stroke-width:2.4" d="M588,164 C616,164 616,124 646,124"/>
+      <path class="edge drawB" style="stroke:var(--snow);stroke-width:2.4" d="M588,144 C616,144 616,144 646,144"/>
+      <path class="edge drawB" style="stroke:var(--snow);stroke-width:2.4" d="M588,200 C616,200 616,184 646,184"/>
+      <path class="edge drawB" style="stroke:var(--snow);stroke-width:2.4" d="M588,104 C616,104 616,270 646,270"/>
+    </g>
+
+    <g class="k b2" transform="translate(0,462)">
+      <rect x="0" y="0" width="918" height="60" rx="10" fill="#f6f8fa" stroke="var(--line)"/>
+      <text x="16" y="24" class="cap" style="font-size:15.5px">Measured 22 Sep: 12 tables · 75 columns · 46 cross-engine column edges · 0 unresolved · same result in one repo or three.</text>
+      <text x="16" y="46" class="cap2">Built: a stitcher over dbt manifests + catalogs, evidence tables per build, and a "built" flag so a stale run cannot pose as lineage.</text>
+    </g>
+    <g class="k b2" transform="translate(0,534)">
+      <rect x="0" y="0" width="918" height="58" rx="10" fill="#eef6ff" stroke="#9ecbff"/>
+      <text x="16" y="24" class="cap" style="fill:#0b3d91;font-size:15.5px">Each engine governs what lives inside it. This governs what crosses between them.</text>
+      <text x="16" y="45" class="cap2">Live, auto-walking graph of this run: datap.ai/data-governance</text>
+    </g>
+  </g>
+
+  <!-- ══ Scene C: GenAI ══ -->
+  <g class="scene scC" transform="translate(262,0)">
+    <text x="0" y="74" class="h">3 · GenAI on top: Text-to-SQL that speaks Spark SQL to Databricks</text>
+    <text x="0" y="98" class="sub">RAG over DDL, documentation and past questions; dialect-aware prompt; executed on the Databricks SQL warehouse. Real answer, 24 Sep.</text>
+
+    <g transform="translate(0,118)">
+      <rect x="0" y="0" width="918" height="420" rx="10" fill="#fff" stroke="var(--line)" stroke-width="1.5"/>
+      <rect x="0" y="0" width="918" height="32" rx="10" fill="#f6f8fa"/><rect x="0" y="22" width="918" height="10" fill="#f6f8fa"/>
+      <text x="16" y="21" class="col" style="fill:var(--muted)">AI · Text-to-SQL · Database: Databricks (Azure) · Run on Databricks SQL warehouse (direct)</text>
+
+      <text x="20" y="62" class="title">Question</text>
+      <foreignObject x="20" y="70" width="560" height="34"><div xmlns="http://www.w3.org/1999/xhtml" class="typeC" style="font:14.5px -apple-system,'Segoe UI',Roboto,sans-serif;color:#1f2328;padding:6px 0">Which artists have the most albums? Top 5.</div></foreignObject>
+
+      <g class="k c2" transform="translate(20,122)">
+        <text x="0" y="0" class="title">Generated Spark SQL</text>
+        <rect x="0" y="10" width="540" height="136" rx="8" fill="#0d1117"/>
+        <text x="14" y="34" class="mono" style="fill:#c9d1d9">SELECT ar.name AS artist, COUNT(al.album_id) AS albums</text>
+        <text x="14" y="56" class="mono" style="fill:#c9d1d9">FROM azure_datapai_databricks_dev.chinook.album al</text>
+        <text x="14" y="78" class="mono" style="fill:#c9d1d9">JOIN azure_datapai_databricks_dev.chinook.artist ar</text>
+        <text x="14" y="100" class="mono" style="fill:#c9d1d9">  ON al.artist_id = ar.artist_id</text>
+        <text x="14" y="122" class="mono" style="fill:#c9d1d9">GROUP BY ar.name ORDER BY albums DESC LIMIT 5</text>
+      </g>
+      <g class="k c3" transform="translate(590,52)">
+        <text x="0" y="0" class="title">Result · Databricks SQL warehouse</text>
+        <rect x="0" y="10" width="308" height="150" rx="8" fill="#f6f8fa" stroke="var(--line)"/>
+        <text x="14" y="34" class="mono" style="fill:var(--muted)">artist</text><text x="290" y="34" text-anchor="end" class="mono" style="fill:var(--muted)">albums</text>
+        <text x="14" y="58" class="mono">Iron Maiden</text><text x="290" y="58" text-anchor="end" class="mono">21</text>
+        <text x="14" y="80" class="mono">Led Zeppelin</text><text x="290" y="80" text-anchor="end" class="mono">14</text>
+        <text x="14" y="102" class="mono">Deep Purple</text><text x="290" y="102" text-anchor="end" class="mono">11</text>
+        <text x="14" y="124" class="mono">U2</text><text x="290" y="124" text-anchor="end" class="mono">10</text>
+        <text x="14" y="146" class="mono">Metallica</text><text x="290" y="146" text-anchor="end" class="mono">10</text>
+      </g>
+      <g class="k c3" transform="translate(590,222)">
+        <rect x="0" y="0" width="308" height="50" rx="8" fill="#f0fdf4" stroke="#86efac"/>
+        <text x="14" y="21" class="badge" style="fill:var(--ok)">Same RAG store, three dialects</text>
+        <text x="14" y="40" class="col">Snowflake · Athena/Trino · Spark SQL (Databricks)</text>
+      </g>
+      <g class="k c3" transform="translate(20,296)">
+        <text x="0" y="0" class="cap" style="font-size:15px">Built: engine-aware prompt + validation (three-part Unity names), schema context from Unity Catalog, neutral LLM client.</text>
+        <text x="0" y="22" class="cap2">Guardrails: read-only statements, row caps, cost guard, every call logged. The model provider is a config value, not a dependency.</text>
+        <text x="0" y="44" class="cap2">Snowflake path also runs through Lightdash (SQL Runner + save to chart); the Databricks warehouse is now registered there.</text>
+      </g>
+    </g>
+  </g>
+
+  <!-- ══ Scene D: agentic AI ══ -->
+  <g class="scene scD" transform="translate(262,0)">
+    <text x="0" y="74" class="h">4 · Agentic AI on top: agents build the pipeline, governance gates it</text>
+    <text x="0" y="98" class="sub">AG2 (AutoGen) agents with audited tools: profile the source, check keys, scan PII, generate staging SQL + YAML, save dbt artifacts. A person approves.</text>
+
+    <g transform="translate(0,124)">
+      <g class="k d1" transform="translate(0,20)"><rect class="box" width="170" height="80" style="stroke:var(--ai)"/><text x="12" y="24" class="title">orchestrator</text><text x="12" y="46" class="col">plans · routes · stops</text><text x="12" y="66" class="mono" style="fill:var(--muted)">ConversableAgent</text></g>
+      <g class="k d2" transform="translate(212,0)"><rect class="box" width="180" height="60"/><text x="12" y="22" class="title">ingest_agent</text><text x="12" y="44" class="mono">ingest_file · profile_table</text></g>
+      <g class="k d3" transform="translate(212,80)"><rect class="box" width="180" height="60"/><text x="12" y="22" class="title">quality_agent</text><text x="12" y="44" class="mono">check_primary_key</text></g>
+      <g class="k d4" transform="translate(434,0)"><rect class="box" width="180" height="60"/><text x="12" y="22" class="title">compliance_agent</text><text x="12" y="44" class="mono">scan_pii · mask_pii_columns</text></g>
+      <g class="k d5" transform="translate(434,80)"><rect class="box" width="180" height="60"/><text x="12" y="22" class="title">transform_agent</text><text x="12" y="44" class="mono">generate_staging_sql · yaml</text></g>
+      <path class="edge" d="M170,60 C190,60 190,30 212,30"/><path class="edge" d="M170,60 C190,60 190,110 212,110"/>
+      <path class="edge" d="M392,30 L434,30"/><path class="edge" d="M392,110 L434,110"/>
+      <g class="k d5" transform="translate(656,0)"><rect class="box" width="262" height="140" style="fill:#fff"/>
+        <text x="12" y="22" class="title">Output: dbt artifacts, not a black box</text>
+        <text x="12" y="46" class="mono">models/staging/stg_&lt;source&gt;.sql</text>
+        <text x="12" y="66" class="mono">models/staging/_stg_&lt;source&gt;.yml</text>
+        <text x="12" y="86" class="mono">sources.yml · audit log per call</text>
+        <text x="12" y="118" class="col">Reviewed in git, built by dbt, lineage inherits.</text>
+      </g>
+      <path class="edge k d5" d="M614,110 C635,110 635,70 656,70"/>
+
+      <g class="k d6" transform="translate(0,176)">
+        <rect x="0" y="0" width="918" height="118" rx="10" fill="#fff7ed" stroke="#fdba74"/>
+        <rect x="0" y="0" width="140" height="118" rx="10" fill="#c2410c"/><text x="14" y="52" class="step">GOVERNANCE</text><text x="14" y="72" class="step">GATE</text>
+        <text x="158" y="28" class="title">HITL approvals · AI governance controls mapped to frameworks · cost guard · provider policy (which model sees which data)</text>
+        <text x="158" y="52" class="col">Agents propose; a person approves; the platform records who, what and when. The same rules the Text-to-SQL path obeys.</text>
+        <text x="158" y="76" class="col">Provider-neutral LLM client: AWS Bedrock (with Guardrails), Anthropic, OpenAI, or a local Ollama model, chosen by config for residency.</text>
+        <text x="158" y="102" class="mono" style="fill:var(--muted)">ag2_pipeline/{pipeline, tools, audit, compliance_tools, cost_control, llm_config}.py</text>
+      </g>
+
+      <g class="k d6" transform="translate(0,318)">
+        <rect x="0" y="0" width="918" height="82" rx="10" fill="#eef6ff" stroke="#9ecbff"/>
+        <text x="16" y="28" class="cap" style="fill:#0b3d91;font-size:16px">The order matters: platform, then governance that travels, then GenAI, then agents.</text>
+        <text x="16" y="50" class="cap" style="fill:#0b3d91;font-size:16px">Each layer is only as trustworthy as the one below it.</text>
+        <text x="16" y="72" class="cap2">datap.ai · platform.datap.ai · github.com/codep-ai · happy to walk through any layer live</text>
+      </g>
+    </g>
+  </g>
+  <!-- pointer -->
+  <g class="cur">
+    <circle class="click" r="14" fill="none" stroke="#60a5fa" stroke-width="2.5"/>
+    <path d="M0,0 L0,17 L4.5,13 L8,20 L10.5,19 L7,12 L12,12 Z" fill="#fff" stroke="#111" stroke-width="1.4" stroke-linejoin="round"/>
+  </g>
+</svg>
+</div>
+<script>
+  function fitStage(){ const st=document.getElementById('stage'); const sc=Math.min(window.innerWidth/1200, window.innerHeight/675); st.style.transform='scale('+sc+')'; document.body.style.width=(1200*sc)+'px'; document.body.style.height=(675*sc)+'px'; }
+  window.addEventListener('resize', fitStage); fitStage();
+  const t = parseFloat(new URLSearchParams(location.search).get('t'));
+  if (!isNaN(t)) { document.querySelectorAll('*').forEach(el => { el.style.animationDelay = (-t) + 's'; }); document.getElementById('stage').classList.add('paused'); }
+</script>
+</body>
+</html>
