@@ -1,0 +1,6 @@
+{
+  "version": "0.0.1",
+  "configurations": [
+    { "name": "homepage-dev", "runtimeExecutable": "npm", "runtimeArgs": ["run", "dev", "--prefix", "/Users/linlin/git/datapai-homepage-next"], "port": 3000 }
+  ]
+}
